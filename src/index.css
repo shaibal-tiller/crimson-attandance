@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  
+  --color-glass-bg: #0D0908;
+  --color-glass-text: #FDF0D5;
+  --color-glass-text-muted: rgba(253, 240, 213, 0.6);
+  --color-glass-accent: #C1121F;
+  --color-glass-accent-light: rgba(193, 18, 31, 0.2);
+  --color-glass-panel: rgba(255, 255, 255, 0.05);
+  --color-glass-panel-hover: rgba(255, 255, 255, 0.08);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-glass-border-light: rgba(255, 255, 255, 0.05);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-glass-bg);
+  color: var(--color-glass-text);
+}
+
+.bg-gradient-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 20%, #3D0C02 0%, #0D0908 60%),
+              radial-gradient(circle at 80% 80%, #1A0F0A 0%, #0D0908 60%);
+  z-index: -1;
+}
+
+/* Mobile app-like enhancements */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smoother scrolling in scroll containers */
+.overflow-auto,
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Prevent pull-to-refresh on mobile when in-app */
+@media (max-width: 1023px) {
+  body {
+    overscroll-behavior-y: contain;
+  }
+}

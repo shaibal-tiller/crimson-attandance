@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+    <title>Crimson Cup BD — ERP</title>
+    <meta name="description" content="Crimson Cup BD Employee & Operations Management System" />
+    <meta name="theme-color" content="#0D0908" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Prevent fetch polyfills from crashing the sandbox
+      const desc = Object.getOwnPropertyDescriptor(window, 'fetch');
+      if (desc && !desc.set) {
+        Object.defineProperty(window, 'fetch', {
+          get: desc.get,
+          set: function() { console.warn('Ignored attempt to overwrite window.fetch'); },
+          configurable: true,
+          enumerable: desc.enumerable
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

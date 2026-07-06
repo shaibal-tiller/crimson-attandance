@@ -1,0 +1,1 @@
+{"name":"Crimson Cup ERP","description":"Hybrid ERP system for Crimson Cup Bd with attendance, roster, inventory, and AI analytics.","requestFramePermissions":["geolocation"],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}
