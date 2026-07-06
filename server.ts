@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
+
 import { GoogleGenAI, Type, FunctionDeclaration } from '@google/genai';
 import { eq } from 'drizzle-orm';
 import dotenv from 'dotenv';
@@ -408,6 +408,7 @@ const app = express();
 
 async function setupFrontendServing(app: any) {
   if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

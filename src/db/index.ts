@@ -7,9 +7,11 @@ dotenv.config();
 
 // Function to create a new connection pool.
 export const createPool = () => {
+  const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
   return new Pool({
     connectionString: process.env.DATABASE_URL,
     connectionTimeoutMillis: 15000,
+    ssl: isProd ? { rejectUnauthorized: false } : undefined,
   });
 };
 
