@@ -1,6 +1,15 @@
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+
+const firebaseConfig = {
+  projectId: "solid-yen-3txfk",
+  appId: "1:345251338131:web:655d6d107586118dd87a66",
+  apiKey: "AIzaSyDLjIk2ropjBVCTHYk9sL-NlWkOwQqv6Fs",
+  authDomain: "solid-yen-3txfk.firebaseapp.com",
+  storageBucket: "solid-yen-3txfk.firebasestorage.app",
+  messagingSenderId: "345251338131",
+  measurementId: ""
+};
 
 if (!getApps().length) {
   initializeApp({
