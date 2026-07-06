@@ -6,7 +6,6 @@ import { eq } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import { db } from './src/db/index.js';
 import { users, branches, inventory, attendance, roster, payroll, leaveRequests, inventoryLogs, overtime, chatSessions, chatMessages, aiUsageLogs } from './src/db/schema.js';
-import { requireAuth } from './src/middleware/auth.js';
 
 dotenv.config();
 
@@ -226,6 +225,19 @@ const app = express();
 
   // Real Database Endpoints
   
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', vercel: process.env.VERCEL, nodeEnv: process.env.NODE_ENV });
+  });
+
+  app.get('/api/debug', async (req, res) => {
+    try {
+      const allUsers = await db.select().from(users).limit(1);
+      res.json({ status: 'success', database: 'connected', sampleUser: allUsers[0] || null });
+    } catch (e: any) {
+      res.status(500).json({ status: 'error', message: e.message, stack: e.stack });
+    }
+  });
+
   app.get('/api/users', async (req, res) => {
     try {
       const allUsers = await db.select().from(users);
