@@ -13,9 +13,7 @@ dotenv.config();
 const aiUsageLimits = new Map();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
 
   app.use(express.json());
 
@@ -408,7 +406,8 @@ async function startServer() {
   });
 
 
-  if (process.env.NODE_ENV !== 'production') {
+async function setupFrontendServing(app: any) {
+  if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -421,10 +420,15 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+}
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+if (process.env.VERCEL !== '1') {
+  setupFrontendServing(app).then(() => {
+    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   });
 }
 
-startServer();
+export default app;
