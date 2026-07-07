@@ -318,11 +318,11 @@ try {
   });
   
   app.post('/api/payroll/generate', async (req, res) => {
-    const { userId, month, amount, date, status } = req.body;
+    const { userId, month, amount, basic, medical, tada, houseAllowance, overtimeAmount, date, status } = req.body;
     try {
       const id = `p_${Date.now()}_${userId}`;
       await db.insert(payroll).values({
-        id, userId, month, amount, date, status
+        id, userId, month, amount, basic: basic || 0, medical: medical || 0, tada: tada || 0, houseAllowance: houseAllowance || 0, overtimeAmount: overtimeAmount || 0, date, status
       });
       res.json({ success: true, message: "Payslip generated" });
     } catch(e: any) {

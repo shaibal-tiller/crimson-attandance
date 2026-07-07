@@ -228,14 +228,25 @@ async function seedPayroll() {
   for (const u of allUsers) {
     if (u.role === 'Admin') continue;
     
-    const amount = u.role === 'Manager' ? '৳ 45,000' : (u.role === 'Supervisor' ? '৳ 35,000' : '৳ 20,000');
+    const baseSalary = u.role === 'Manager' ? 45000 : (u.role === 'Supervisor' ? 35000 : 20000);
+    const amountStr = `৳ ${baseSalary.toLocaleString()}`;
+    const basic = Math.floor(baseSalary * 0.6);
+    const houseAllowance = Math.floor(baseSalary * 0.2);
+    const medical = Math.floor(baseSalary * 0.1);
+    const tada = Math.floor(baseSalary * 0.1);
+    const overtimeAmount = 0;
     
     for (let i = 0; i < months.length; i++) {
       await db.insert(payroll).values({
         id: `p${i}_${u.uid}`,
         userId: u.uid,
         month: months[i].month,
-        amount: amount,
+        amount: amountStr,
+        basic,
+        medical,
+        tada,
+        houseAllowance,
+        overtimeAmount,
         status: 'Paid',
         date: months[i].date
       }).onConflictDoNothing();

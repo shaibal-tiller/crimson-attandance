@@ -55,6 +55,11 @@ export const payroll = pgTable('payroll', {
   userId: text('user_id').notNull(),
   month: text('month').notNull(),
   amount: text('amount').notNull(),
+  basic: integer('basic').notNull().default(0),
+  medical: integer('medical').notNull().default(0),
+  tada: integer('tada').notNull().default(0),
+  houseAllowance: integer('house_allowance').notNull().default(0),
+  overtimeAmount: integer('overtime_amount').notNull().default(0),
   status: text('status').notNull(),
   date: text('date').notNull(),
 });
