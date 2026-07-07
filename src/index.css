@@ -1,18 +1,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  
+:root {
   --color-glass-bg: #0D0908;
   --color-glass-text: #FDF0D5;
   --color-glass-text-muted: rgba(253, 240, 213, 0.6);
   --color-glass-accent: #C1121F;
   --color-glass-accent-light: rgba(193, 18, 31, 0.2);
-  --color-glass-panel: rgba(255, 255, 255, 0.05);
+  --color-glass-panel: rgba(15, 10, 9, 0.8);
   --color-glass-panel-hover: rgba(255, 255, 255, 0.08);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-glass-border-light: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-glass-border-light: rgba(255, 255, 255, 0.06);
+  --color-glass-item: rgba(255, 255, 255, 0.03);
+}
+
+.light {
+  --color-glass-bg: #F8F1ED;
+  --color-glass-text: #2B1510;
+  --color-glass-text-muted: rgba(43, 21, 16, 0.6);
+  --color-glass-accent: #C1121F;
+  --color-glass-accent-light: rgba(193, 18, 31, 0.1);
+  --color-glass-panel: rgba(255, 255, 255, 0.75);
+  --color-glass-panel-hover: rgba(255, 255, 255, 0.9);
+  --color-glass-border: rgba(193, 18, 31, 0.18);
+  --color-glass-border-light: rgba(193, 18, 31, 0.1);
+  --color-glass-item: rgba(193, 18, 31, 0.04);
+}
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  
+  --color-glass-bg: var(--color-glass-bg);
+  --color-glass-text: var(--color-glass-text);
+  --color-glass-text-muted: var(--color-glass-text-muted);
+  --color-glass-accent: var(--color-glass-accent);
+  --color-glass-accent-light: var(--color-glass-accent-light);
+  --color-glass-panel: var(--color-glass-panel);
+  --color-glass-panel-hover: var(--color-glass-panel-hover);
+  --color-glass-border: var(--color-glass-border);
+  --color-glass-border-light: var(--color-glass-border-light);
+  --color-glass-item: var(--color-glass-item);
 }
 
 body {
@@ -21,6 +48,7 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-glass-bg);
   color: var(--color-glass-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .bg-gradient-glass {
@@ -32,7 +60,18 @@ body {
   background: radial-gradient(circle at 20% 20%, #3D0C02 0%, #0D0908 60%),
               radial-gradient(circle at 80% 80%, #1A0F0A 0%, #0D0908 60%);
   z-index: -1;
+  transition: background 0.5s ease;
 }
+
+.light .bg-gradient-glass {
+  background: radial-gradient(circle at 20% 20%, #FDF0D5 0%, #EFE5DD 60%),
+              radial-gradient(circle at 80% 80%, #E3D5CA 0%, #EFE5DD 60%);
+}
+
+.light .animate-blob {
+  opacity: 0.22;
+}
+
 
 /* Mobile app-like enhancements */
 html {

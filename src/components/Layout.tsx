@@ -17,6 +17,7 @@ import {
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { usePageTitle } from '../hooks/usePageTitle';
+import ThemeToggler from './ThemeToggler';
 
 const allNavigation = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['Admin', 'Manager', 'Supervisor', 'Employee'] },
@@ -85,7 +86,9 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-glass-border mt-auto">
+        <div className="p-6 border-t border-glass-border mt-auto space-y-4">
+          <ThemeToggler />
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center flex-1 min-w-0">
               <div className="h-9 w-9 rounded-full bg-glass-border flex items-center justify-center text-glass-text font-bold shrink-0 overflow-hidden">
