@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Users, UserCheck, AlertTriangle, Coffee, Loader2, Check, X, 
   PlusCircle, ShieldAlert, FileText, Clock, Calendar, CheckSquare, Sparkles 
@@ -10,14 +11,8 @@ import { useUser } from '../context/UserContext';
 export default function DashboardView() {
   const { user } = useUser();
   if (!user) return null;
-  const [stats, setStats] = useState<any>({ users: 0, present: 0, alerts: 0, branches: 0 });
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
   // Add member states
   const [showAddMember, setShowAddMember] = useState(false);
-  const [branchesList, setBranchesList] = useState<any[]>([]);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('Employee');
@@ -28,8 +23,12 @@ export default function DashboardView() {
   const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
   const canAddMember = user.role === 'Admin' || user.role === 'Manager';
 
-  const fetchDashboard = async () => {
-    try {
+  const queryClient = useQueryClient();
+
+  // Queries
+  const { data: dashboardData, isLoading: loading } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
       const [usersRes, attRes, invRes, leaveRes, overtimeRes] = await Promise.all([
         axios.get('/api/users'),
         axios.get('/api/attendance'),
@@ -58,22 +57,18 @@ export default function DashboardView() {
       
       const branchIds = new Set(usersList.map((u: any) => u.branchId));
 
-      setStats({
+      const stats = {
         users: usersList.length,
         present: presentToday,
         alerts: alerts,
         branches: branchIds.size
-      });
+      };
 
-      // Add user names to attendance
-      const attWithNames = attList.map((a: any) => {
+      const attendance = attList.map((a: any) => {
         const u = usersList.find((u: any) => u.uid === a.userId);
         return { ...a, userName: u ? u.name : 'Unknown' };
-      }).reverse().slice(0, 5); // Last 5
+      }).reverse().slice(0, 5);
 
-      setAttendance(attWithNames);
-
-      // Pending requests
       const pLeaves = leaveList.filter((l: any) => l.status === 'Pending').map((l:any) => ({
         ...l, reqType: 'Leave', userName: usersList.find((u:any) => u.uid === l.userId)?.name || l.userId
       }));
@@ -81,68 +76,72 @@ export default function DashboardView() {
         ...o, reqType: 'Overtime', userName: usersList.find((u:any) => u.uid === o.userId)?.name || o.userId
       }));
       
-      setPendingRequests([...pLeaves, ...pOvertime].slice(0, 10)); // up to 10
-    } catch(e) {
-      console.error("Dashboard error", e);
-    } finally {
-      setLoading(false);
+      const pendingRequests = [...pLeaves, ...pOvertime].slice(0, 10);
+
+      return { stats, attendance, pendingRequests };
     }
-  };
+  });
+
+  const { data: branchesList = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const res = await axios.get('/api/branches');
+      return res.data || [];
+    },
+    enabled: canAddMember
+  });
 
   useEffect(() => {
-    fetchDashboard();
-    if (canAddMember) {
-      axios.get('/api/branches')
-        .then(res => {
-          setBranchesList(res.data || []);
-          // Preselect branch for managers
-          if (user.role !== 'Admin') {
-            setNewBranchId(user.branchId);
-          } else if (res.data?.length > 0) {
-            setNewBranchId(res.data[0].id);
-          }
-        })
-        .catch(err => console.error(err));
+    if (canAddMember && branchesList.length > 0) {
+      if (user.role !== 'Admin') {
+        setNewBranchId(user.branchId);
+      } else {
+        setNewBranchId(branchesList[0].id);
+      }
     }
-  }, [user]);
+  }, [branchesList, canAddMember, user]);
 
-  const handleLeaveAction = async (id: string, status: string) => {
-    try { await axios.put(`/api/leave/${id}`, { status }); fetchDashboard(); } catch(err) { console.error(err); }
-  };
-  
-  const handleOvertimeAction = async (id: string, status: string) => {
-    try { await axios.put(`/api/overtime/${id}`, { status }); fetchDashboard(); } catch(err) { console.error(err); }
-  };
+  // Mutations
+  const leaveMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: string }) => axios.put(`/api/leave/${id}`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  });
 
-  const handleAddMemberSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName || !newEmail || !newBranchId) return;
-    setAddingMember(true);
-    setAddMessage('');
-    try {
-      const selectedB = branchesList.find(b => b.id === newBranchId) || { name: user.branchName };
-      await axios.post('/api/users', {
-        name: newName,
-        email: newEmail,
-        role: newRole,
-        branchId: newBranchId,
-        branchName: selectedB.name
-      });
+  const overtimeMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: string }) => axios.put(`/api/overtime/${id}`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  });
+
+  const addMemberMutation = useMutation({
+    mutationFn: (newMember: any) => axios.post('/api/users', newMember),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setAddMessage('Member added successfully!');
       setNewName('');
       setNewEmail('');
       setNewRole('Employee');
-      fetchDashboard();
       setTimeout(() => {
         setShowAddMember(false);
         setAddMessage('');
       }, 1500);
-    } catch (err: any) {
-      console.error(err);
+    },
+    onError: (err: any) => {
       setAddMessage(err.response?.data?.error || 'Failed to add member');
-    } finally {
-      setAddingMember(false);
     }
+  });
+
+  const handleAddMemberSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName || !newEmail || !newBranchId) return;
+    setAddMessage('');
+    const selectedB = branchesList.find(b => b.id === newBranchId) || { name: user.branchName };
+    addMemberMutation.mutate({
+      name: newName,
+      email: newEmail,
+      role: newRole,
+      branchId: newBranchId,
+      branchName: selectedB.name
+    });
   };
 
   if (loading) {
@@ -201,20 +200,20 @@ export default function DashboardView() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Staff" value={stats.users.toString()} icon={Users} trend="Active" trendColor="text-[#2D6A4F]" />
-        <StatCard title="Present Today" value={stats.present.toString()} icon={UserCheck} trend="Today" trendColor="text-[#2D6A4F]" />
-        <StatCard title="Inventory Alerts" value={stats.alerts.toString()} icon={AlertTriangle} trend={stats.alerts > 0 ? "Action needed" : "All good"} trendColor={stats.alerts > 0 ? "text-glass-accent" : "text-[#2D6A4F]"} />
-        <StatCard title="Branches" value={stats.branches.toString()} icon={Coffee} trend="Managed" trendColor="text-[#2D6A4F]" />
+        <StatCard title="Total Staff" value={dashboardData?.stats.users.toString() || '0'} icon={Users} trend="Active" trendColor="text-[#2D6A4F]" />
+        <StatCard title="Present Today" value={dashboardData?.stats.present.toString() || '0'} icon={UserCheck} trend="Today" trendColor="text-[#2D6A4F]" />
+        <StatCard title="Inventory Alerts" value={dashboardData?.stats.alerts.toString() || '0'} icon={AlertTriangle} trend={(dashboardData?.stats.alerts || 0) > 0 ? "Action needed" : "All good"} trendColor={(dashboardData?.stats.alerts || 0) > 0 ? "text-glass-accent" : "text-[#2D6A4F]"} />
+        <StatCard title="Branches" value={dashboardData?.stats.branches.toString() || '0'} icon={Coffee} trend="Managed" trendColor="text-[#2D6A4F]" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-lg font-semibold text-glass-text mb-4">Recent Attendance</h2>
           <div className="space-y-4">
-            {attendance.length === 0 ? (
+            {!dashboardData || dashboardData.attendance.length === 0 ? (
                <p className="text-sm text-glass-text-muted">No recent activity.</p>
             ) : (
-               attendance.map(a => (
+               dashboardData.attendance.map((a: any) => (
                  <div key={a.id} className="flex items-center justify-between py-2 border-b border-glass-border-light last:border-0">
                    <div>
                      <p className="text-sm font-medium text-glass-text">{a.userName}</p>
@@ -231,11 +230,11 @@ export default function DashboardView() {
 
         <div className="glass-panel p-6 rounded-2xl">
           <h2 className="text-lg font-semibold text-glass-text mb-4">Pending Requests</h2>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto">
-             {pendingRequests.length === 0 ? (
+          <div className="space-y-4 max-h-75 overflow-y-auto">
+             {!dashboardData || dashboardData.pendingRequests.length === 0 ? (
                 <p className="text-sm text-glass-text-muted">No pending requests.</p>
              ) : (
-                pendingRequests.map(req => (
+                dashboardData.pendingRequests.map((req: any) => (
                   <div key={req.id} className="flex items-center justify-between py-2 border-b border-glass-border-light last:border-0">
                     <div>
                       <p className="text-sm font-medium text-glass-text">{req.reqType}: {req.userName}</p>
@@ -247,10 +246,10 @@ export default function DashboardView() {
                     </div>
                     {isManager && (
                       <div className="flex space-x-2">
-                        <button onClick={() => req.reqType === 'Leave' ? handleLeaveAction(req.id, 'Approved') : handleOvertimeAction(req.id, 'Approved')} className="p-1.5 bg-[#2D6A4F] text-white rounded hover:bg-[#1a4a35] transition" title="Approve">
+                        <button onClick={() => req.reqType === 'Leave' ? leaveMutation.mutate({ id: req.id, status: 'Approved'}) : overtimeMutation.mutate({ id: req.id, status: 'Approved'})} className="p-1.5 bg-[#2D6A4F] text-white rounded hover:bg-[#1a4a35] transition" title="Approve">
                           <Check className="w-4 h-4" />
                         </button>
-                        <button onClick={() => req.reqType === 'Leave' ? handleLeaveAction(req.id, 'Rejected') : handleOvertimeAction(req.id, 'Rejected')} className="p-1.5 bg-glass-item text-glass-text border border-glass-border rounded hover:bg-glass-panel-hover transition" title="Deny">
+                        <button onClick={() => req.reqType === 'Leave' ? leaveMutation.mutate({ id: req.id, status: 'Rejected'}) : overtimeMutation.mutate({ id: req.id, status: 'Rejected'})} className="p-1.5 bg-glass-item text-glass-text border border-glass-border rounded hover:bg-glass-panel-hover transition" title="Deny">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -334,7 +333,7 @@ export default function DashboardView() {
                       type="text" 
                       value={user.branchName} 
                       disabled
-                      className="w-full bg-zinc-900/60 border border-glass-border rounded-xl p-2.5 text-sm text-zinc-500 cursor-not-allowed"
+                      className="w-full bg-glass-item border border-glass-border rounded-xl p-2.5 text-sm text-glass-text-muted cursor-not-allowed"
                     />
                   )}
                 </div>
@@ -348,10 +347,10 @@ export default function DashboardView() {
 
               <button 
                 type="submit" 
-                disabled={addingMember}
+                disabled={addMemberMutation.isPending}
                 className="w-full bg-glass-accent hover:bg-red-500 text-white py-2.5 rounded-xl font-bold transition shadow-lg shadow-glass-accent/15 border border-glass-accent/20 active:scale-[0.98] disabled:opacity-50"
               >
-                {addingMember ? 'Saving member...' : 'Save Team Member'}
+                {addMemberMutation.isPending ? 'Saving member...' : 'Save Team Member'}
               </button>
             </form>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Send, Bot, User as UserIcon, Loader2, Plus, MessageSquare, Trash2, Edit2, Activity } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -41,24 +42,25 @@ function MessageRenderer({ content }: { content: string }) {
 export default function AIChatView() {
   const { user } = useUser();
   if (!user) return null;
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [showUsage, setShowUsage] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showUsage, setShowUsage] = useState(false);
-  const [usageLogs, setUsageLogs] = useState<any[]>([]);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchSessions = async () => {
-    try {
+  const queryClient = useQueryClient();
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: ['chat-sessions', user.id],
+    queryFn: async () => {
       const res = await axios.get(`/api/chat/sessions?userId=${user.id}`);
-      setSessions(res.data.sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-    } catch(e) { console.error(e); }
-  };
+      return res.data.sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    }
+  });
 
   const fetchMessages = async (sessionId: string) => {
     try {
@@ -68,16 +70,14 @@ export default function AIChatView() {
     } catch(e) { console.error(e); }
   };
 
-  const fetchUsage = async () => {
-    try {
+  const { data: usageLogs = [], refetch: refetchUsage } = useQuery({
+    queryKey: ['chat-usage', user.id],
+    queryFn: async () => {
       const res = await axios.get(`/api/chat/usage?userId=${user.id}`);
-      setUsageLogs(res.data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch(e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    fetchSessions();
-  }, [user]);
+      return res.data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    },
+    enabled: false // Only fetch when usage modal is opened
+  });
 
   useEffect(() => {
     if (currentSessionId) {
@@ -95,21 +95,26 @@ export default function AIChatView() {
     setCurrentSessionId(null);
   };
 
-  const handleRename = async (id: string, title: string) => {
-    try {
-      await axios.put(`/api/chat/sessions/${id}`, { title });
+  const renameMutation = useMutation({
+    mutationFn: ({ id, title }: { id: string, title: string }) => axios.put(`/api/chat/sessions/${id}`, { title }),
+    onSuccess: () => {
       setEditingSessionId(null);
-      fetchSessions();
-    } catch(e) { console.error(e); }
-  };
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', user.id] });
+    },
+    onError: (e) => console.error(e)
+  });
 
-  const handleDelete = async (id: string) => {
-    try {
-      await axios.delete(`/api/chat/sessions/${id}`);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => axios.delete(`/api/chat/sessions/${id}`),
+    onSuccess: (_, id) => {
       if (currentSessionId === id) setCurrentSessionId(null);
-      fetchSessions();
-    } catch(e) { console.error(e); }
-  };
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', user.id] });
+    },
+    onError: (e) => console.error(e)
+  });
+
+  const handleRename = (id: string, title: string) => renameMutation.mutate({ id, title });
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +129,7 @@ export default function AIChatView() {
         const res = await axios.post('/api/chat/sessions', { userId: user.id, title });
         targetSessionId = res.data.id;
         setCurrentSessionId(targetSessionId);
-        fetchSessions(); // Refresh sidebar
+        queryClient.invalidateQueries({ queryKey: ['chat-sessions', user.id] }); // Refresh sidebar
       } catch(e) {
         console.error("Failed to create session", e);
         return;
@@ -147,7 +152,7 @@ export default function AIChatView() {
       
       if (data.reply) {
         setMessages(prev => [...prev, { role: 'model', content: data.reply }]);
-        fetchSessions(); // Update sort order in sidebar
+        queryClient.invalidateQueries({ queryKey: ['chat-sessions', user.id] }); // Update sort order in sidebar
       } else {
         throw new Error("No reply from AI");
       }
@@ -213,7 +218,7 @@ export default function AIChatView() {
 
         <div className="p-4 border-t border-glass-border-light">
           <button 
-            onClick={() => { fetchUsage(); setShowUsage(true); }}
+            onClick={() => { refetchUsage(); setShowUsage(true); }}
             className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-black/20 rounded-xl text-glass-text-muted hover:text-glass-text hover:bg-black/30 transition"
           >
             <Activity className="w-4 h-4" />

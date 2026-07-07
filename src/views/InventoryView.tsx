@@ -1,62 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, AlertCircle, Loader2, ArrowUpCircle } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function InventoryView() {
   const { user } = useUser();
   if (!user) return null;
-  const [inventory, setInventory] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
   
   const [restockItem, setRestockItem] = useState<any>(null);
   const [restockAmount, setRestockAmount] = useState<number>(0);
 
-  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
+  const queryClient = useQueryClient();
 
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([
-      axios.get('/api/inventory'),
-      axios.get('/api/inventory_logs'),
-      axios.get('/api/users')
-    ]).then(([invRes, logsRes, usersRes]) => {
+  const { data: inventoryData = { inventory: [], logs: [], users: [] }, isLoading: loading } = useQuery({
+    queryKey: ['inventory', user.id],
+    queryFn: async () => {
+      const [invRes, logsRes, usersRes] = await Promise.all([
+        axios.get('/api/inventory'),
+        axios.get('/api/inventory_logs'),
+        axios.get('/api/users')
+      ]);
       const data = invRes.data || [];
       const lData = logsRes.data || [];
-      setUsers(usersRes.data || []);
+      const uData = usersRes.data || [];
+
+      let inventory = [];
+      let logs = [];
 
       if (user.role === 'Admin') {
-        setInventory(data);
-        setLogs(lData.reverse());
+        inventory = data;
+        logs = lData.reverse();
       } else {
-        setInventory(data.filter((i: any) => i.branchId === user.branchId));
-        setLogs(lData.filter((l: any) => l.branchId === user.branchId).reverse());
+        inventory = data.filter((i: any) => i.branchId === user.branchId);
+        logs = lData.filter((l: any) => l.branchId === user.branchId).reverse();
       }
-    }).finally(() => setLoading(false));
-  };
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
+      return { inventory, logs, users: uData };
+    }
+  });
 
-  const handleRestock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!restockItem || restockAmount <= 0) return;
-    try {
-      await axios.put('/api/inventory/restock', {
-        id: restockItem.id,
-        branchId: restockItem.branchId,
-        userId: user.id,
-        amount: Number(restockAmount)
-      });
+  const { inventory, logs, users } = inventoryData;
+
+  const restockMutation = useMutation({
+    mutationFn: (restockData: any) => axios.put('/api/inventory/restock', restockData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory', user.id] });
       setRestockItem(null);
       setRestockAmount(0);
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+    },
+    onError: (err) => console.error(err)
+  });
+
+  const handleRestock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockItem || restockAmount <= 0) return;
+    restockMutation.mutate({
+      id: restockItem.id,
+      branchId: restockItem.branchId,
+      userId: user.id,
+      amount: Number(restockAmount)
+    });
   };
 
   const getUserName = (uid: string) => {
@@ -108,8 +113,8 @@ export default function InventoryView() {
                 className="w-full bg-glass-item border border-glass-border rounded-lg p-2.5 text-sm text-glass-text focus:outline-none focus:border-glass-accent"
               />
             </div>
-            <button type="submit" className="bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors">
-              Confirm Restock
+            <button type="submit" disabled={restockMutation.isPending} className="bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors">
+              {restockMutation.isPending ? 'Processing...' : 'Confirm Restock'}
             </button>
             <button type="button" onClick={() => setRestockItem(null)} className="bg-glass-item text-glass-text px-6 py-2.5 rounded-lg text-sm font-medium transition-colors border border-glass-border">
               Cancel

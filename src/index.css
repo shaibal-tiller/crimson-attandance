@@ -143,17 +143,15 @@ html {
 
 /* Explicit Card and Component Separations */
 .glass-panel {
-  background: rgba(15, 10, 9, 0.8) !important;
+  background: var(--color-glass-panel) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--color-glass-border) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-panel:hover {
-  border-color: rgba(193, 18, 31, 0.3) !important;
-  box-shadow: 0 12px 35px -8px rgba(193, 18, 31, 0.08);
+  border-color: var(--color-glass-accent) !important;
+  box-shadow: 0 12px 35px -8px rgba(193, 18, 31, 0.15);
 }
-
-

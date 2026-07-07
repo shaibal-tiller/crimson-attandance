@@ -1,15 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CalendarDays, FilePlus2, Check, X, Loader2, Users } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function RosterView() {
   const { user } = useUser();
   if (!user) return null;
-  const [rosters, setRosters] = useState<any[]>([]);
-  const [leaves, setLeaves] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
+
+  const queryClient = useQueryClient();
+
+  const { data: rosterData = { rosters: [], leaves: [], users: [] }, isLoading: loading } = useQuery({
+    queryKey: ['roster', user.id],
+    queryFn: async () => {
+      const [rRes, lRes, uRes] = await Promise.all([
+        axios.get('/api/roster'),
+        axios.get('/api/leave'),
+        axios.get('/api/users')
+      ]);
+      const rData = rRes.data || [];
+      const lData = lRes.data || [];
+      const uData = uRes.data || [];
+
+      let rosters = [];
+      let leaves = [];
+
+      if (user.role === 'Admin') {
+        rosters = rData;
+        leaves = lData;
+      } else if (isManager) {
+        rosters = rData.filter((r: any) => r.branchId === user.branchId);
+        leaves = lData.filter((l: any) => l.branchId === user.branchId);
+      } else {
+        rosters = rData.filter((r: any) => r.branchId === user.branchId);
+        leaves = lData.filter((l: any) => l.userId === user.id);
+      }
+
+      return { rosters, leaves, users: uData };
+    }
+  });
+
+  const { rosters, leaves, users } = rosterData;
 
   // Leave Form
   const [showLeaveForm, setShowLeaveForm] = useState(false);
@@ -18,63 +50,38 @@ export default function RosterView() {
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
 
-  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
-
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([
-      axios.get('/api/roster'),
-      axios.get('/api/leave'),
-      axios.get('/api/users')
-    ]).then(([rRes, lRes, uRes]) => {
-      const rData = rRes.data || [];
-      const lData = lRes.data || [];
-      const uData = uRes.data || [];
-      setUsers(uData);
-
-      if (user.role === 'Admin') {
-        setRosters(rData);
-        setLeaves(lData);
-      } else if (isManager) {
-        setRosters(rData.filter((r: any) => r.branchId === user.branchId));
-        setLeaves(lData.filter((l: any) => l.branchId === user.branchId));
-      } else {
-        setRosters(rData.filter((r: any) => r.branchId === user.branchId)); // see branch roster
-        setLeaves(lData.filter((l: any) => l.userId === user.id)); // only own leaves
-      }
-    }).finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const handleApplyLeave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await axios.post('/api/leave', {
-        userId: user.id,
-        branchId: user.branchId,
-        type: leaveType,
-        startDate,
-        endDate,
-        reason
-      });
+  const applyLeaveMutation = useMutation({
+    mutationFn: (newLeave: any) => axios.post('/api/leave', newLeave),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster', user.id] });
       setShowLeaveForm(false);
       setStartDate(''); setEndDate(''); setReason('');
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+    },
+    onError: (err) => console.error(err)
+  });
+
+  const leaveActionMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: string }) => axios.put(`/api/leave/${id}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster', user.id] });
+    },
+    onError: (err) => console.error(err)
+  });
+
+  const handleApplyLeave = (e: React.FormEvent) => {
+    e.preventDefault();
+    applyLeaveMutation.mutate({
+      userId: user.id,
+      branchId: user.branchId,
+      type: leaveType,
+      startDate,
+      endDate,
+      reason
+    });
   };
 
-  const handleLeaveAction = async (id: string, status: string) => {
-    try {
-      await axios.put(`/api/leave/${id}`, { status });
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+  const handleLeaveAction = (id: string, status: string) => {
+    leaveActionMutation.mutate({ id, status });
   };
 
   const getUserName = (uid: string) => {
@@ -150,8 +157,8 @@ export default function RosterView() {
               <textarea required rows={3} value={reason} onChange={e => setReason(e.target.value)} className="w-full bg-glass-item border border-glass-border rounded-lg p-2.5 text-sm text-glass-text focus:outline-none focus:border-glass-accent"></textarea>
             </div>
             <div className="md:col-span-2 pt-2">
-              <button type="submit" className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                Submit Request
+              <button type="submit" disabled={applyLeaveMutation.isPending} className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                {applyLeaveMutation.isPending ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </form>

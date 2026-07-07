@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Clock, Plus, X, Check, Loader2 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function OvertimeView() {
   const { user } = useUser();
   if (!user) return null;
-  const [overtimes, setOvertimes] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
 
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -16,57 +15,62 @@ export default function OvertimeView() {
   const [hours, setHours] = useState<number>(1);
   const [reason, setReason] = useState('');
 
-  const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
+  const queryClient = useQueryClient();
 
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([
-      axios.get('/api/overtime'),
-      axios.get('/api/users')
-    ]).then(([otRes, uRes]) => {
+  const { data: overtimeData = { overtimes: [], users: [] }, isLoading: loading } = useQuery({
+    queryKey: ['overtime', user.id],
+    queryFn: async () => {
+      const [otRes, uRes] = await Promise.all([
+        axios.get('/api/overtime'),
+        axios.get('/api/users')
+      ]);
       const oData = otRes.data || [];
       const uData = uRes.data || [];
-      setUsers(uData);
-
+      
+      let overtimes = [];
       if (user.role === 'Admin') {
-        setOvertimes(oData);
+        overtimes = oData;
       } else if (isManager) {
-        setOvertimes(oData.filter((o: any) => o.branchId === user.branchId));
+        overtimes = oData.filter((o: any) => o.branchId === user.branchId);
       } else {
-        setOvertimes(oData.filter((o: any) => o.userId === user.id));
+        overtimes = oData.filter((o: any) => o.userId === user.id);
       }
-    }).finally(() => setLoading(false));
-  };
+      
+      return { overtimes, users: uData };
+    }
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
+  const { overtimes, users } = overtimeData;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await axios.post('/api/overtime', {
-        userId: user.id,
-        branchId: user.branchId,
-        date,
-        hours: Number(hours),
-        reason
-      });
+  const logMutation = useMutation({
+    mutationFn: (otData: any) => axios.post('/api/overtime', otData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['overtime', user.id] });
       setShowForm(false);
       setDate(''); setHours(1); setReason('');
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+    },
+    onError: (err) => console.error(err)
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: string }) => axios.put(`/api/overtime/${id}`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['overtime', user.id] }),
+    onError: (err) => console.error(err)
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    logMutation.mutate({
+      userId: user.id,
+      branchId: user.branchId,
+      date,
+      hours: Number(hours),
+      reason
+    });
   };
 
-  const handleAction = async (id: string, status: string) => {
-    try {
-      await axios.put(`/api/overtime/${id}`, { status });
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+  const handleAction = (id: string, status: string) => {
+    actionMutation.mutate({ id, status });
   };
 
   const getUserName = (uid: string) => {
@@ -145,8 +149,8 @@ export default function OvertimeView() {
               />
             </div>
             <div className="md:col-span-2 pt-2">
-              <button type="submit" className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                Submit Overtime
+              <button type="submit" disabled={logMutation.isPending} className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                {logMutation.isPending ? 'Submitting...' : 'Submit Overtime'}
               </button>
             </div>
           </form>

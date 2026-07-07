@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -16,14 +17,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
+  const location = useLocation();
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const isForceDarkRoute = location.pathname === '/' || location.pathname === '/login';
 
     const applyTheme = () => {
       let currentResolvedTheme: 'light' | 'dark' = 'dark';
 
-      if (theme === 'system') {
+      if (isForceDarkRoute) {
+        currentResolvedTheme = 'dark';
+      } else if (theme === 'system') {
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         currentResolvedTheme = systemPrefersDark ? 'dark' : 'light';
       } else {
@@ -44,7 +49,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme();
 
     // Listen for system changes if system theme is active
-    if (theme === 'system') {
+    if (theme === 'system' && !isForceDarkRoute) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleSystemChange = () => {
         applyTheme();
@@ -52,7 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       mediaQuery.addEventListener('change', handleSystemChange);
       return () => mediaQuery.removeEventListener('change', handleSystemChange);
     }
-  }, [theme]);
+  }, [theme, location.pathname]);
 
   const setTheme = (newTheme: Theme) => {
     localStorage.setItem('theme', newTheme);

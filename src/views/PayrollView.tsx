@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, Loader2, Plus, X, Eye, Printer } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function PayrollView() {
   const { user } = useUser();
   if (!user) return null;
-  const [payslips, setPayslips] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const isManager = user.role === 'Manager' || user.role === 'Admin' || user.role === 'Supervisor';
+
   const [showGenerate, setShowGenerate] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [month, setMonth] = useState('October 2023');
@@ -16,49 +16,54 @@ export default function PayrollView() {
   const [status, setStatus] = useState('Paid');
   const [selectedPayslip, setSelectedPayslip] = useState<any | null>(null);
 
-  const isManager = user.role === 'Manager' || user.role === 'Admin' || user.role === 'Supervisor';
+  const queryClient = useQueryClient();
 
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([
-      axios.get('/api/payroll'),
-      axios.get('/api/users')
-    ]).then(([payrollRes, usersRes]) => {
+  const { data: payrollData = { payslips: [], users: [] }, isLoading: loading } = useQuery({
+    queryKey: ['payroll', user.id],
+    queryFn: async () => {
+      const [payrollRes, usersRes] = await Promise.all([
+        axios.get('/api/payroll'),
+        axios.get('/api/users')
+      ]);
       const pData = payrollRes.data || [];
       const uData = usersRes.data || [];
       
+      let payslips = [];
+      let branchUsers = [];
+
       if(isManager) {
-        const branchUsers = user.role === 'Admin' ? uData : uData.filter((u: any) => u.branchId === user.branchId);
-        setUsers(branchUsers);
-        
+        branchUsers = user.role === 'Admin' ? uData : uData.filter((u: any) => u.branchId === user.branchId);
         const branchUserIds = new Set(branchUsers.map((u:any) => u.uid));
-        setPayslips(pData.filter((p: any) => branchUserIds.has(p.userId)));
+        payslips = pData.filter((p: any) => branchUserIds.has(p.userId));
       } else {
-        setPayslips(pData.filter((p: any) => p.userId === user.id));
+        payslips = pData.filter((p: any) => p.userId === user.id);
       }
-    }).finally(() => setLoading(false));
-  };
+      
+      return { payslips, users: branchUsers };
+    }
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [user.id, user.role, user.branchId]);
+  const { payslips, users } = payrollData;
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const generateMutation = useMutation({
+    mutationFn: (payrollData: any) => axios.post('/api/payroll/generate', payrollData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll', user.id] });
+      setShowGenerate(false);
+    },
+    onError: (err) => console.error(err)
+  });
+
+  const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    try {
-      await axios.post('/api/payroll/generate', {
-        userId: selectedUser,
-        month,
-        amount,
-        status,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-      });
-      setShowGenerate(false);
-      fetchData();
-    } catch(err) {
-      console.error(err);
-    }
+    generateMutation.mutate({
+      userId: selectedUser,
+      month,
+      amount,
+      status,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    });
   };
 
   const getUserName = (uid: string) => {
@@ -148,8 +153,8 @@ export default function PayrollView() {
               </select>
             </div>
             <div className="md:col-span-2 pt-2">
-              <button type="submit" className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                Generate
+              <button type="submit" disabled={generateMutation.isPending} className="w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#1a4a35] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                {generateMutation.isPending ? 'Generating...' : 'Generate'}
               </button>
             </div>
           </form>

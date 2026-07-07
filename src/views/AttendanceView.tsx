@@ -1,52 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, ScanFace, Fingerprint, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+
+const GOVT_HOLIDAYS: Record<string, string> = {
+  '02-21': "Language Martyrs' Day",
+  '03-26': 'Independence Day',
+  '04-14': 'Bengali New Year',
+  '05-01': 'May Day',
+  '12-16': 'Victory Day',
+  '12-25': 'Christmas Day'
+};
 
 export default function AttendanceView() {
   const { user } = useUser();
   if (!user) return null;
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [leaves, setLeaves] = useState<any[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const queryClient = useQueryClient();
 
-  const fetchLogs = () => {
-    Promise.all([
-      axios.get('/api/attendance'),
-      axios.get('/api/leave')
-    ]).then(([attRes, leaveRes]) => {
+  const { data: attendanceData = { logs: [], leaves: [] } } = useQuery({
+    queryKey: ['attendance', user.id],
+    queryFn: async () => {
+      const [attRes, leaveRes] = await Promise.all([
+        axios.get('/api/attendance'),
+        axios.get('/api/leave')
+      ]);
       const data = attRes.data || [];
       const lData = leaveRes.data || [];
 
       const userLogs = data.filter((l: any) => l.userId === user.id);
       const userLeaves = lData.filter((l: any) => l.userId === user.id);
-      setLogs(userLogs);
-      setLeaves(userLeaves);
-    }).catch(err => console.error(err));
-  };
+      return { logs: userLogs, leaves: userLeaves };
+    }
+  });
 
-  useEffect(() => {
-    fetchLogs();
-  }, [user]);
+  const { logs, leaves } = attendanceData;
+
+  const checkInOutMutation = useMutation({
+    mutationFn: ({ endpoint, type }: { endpoint: string, type: string }) => 
+      axios.post(endpoint, { userId: user.id, branchId: user.branchId, type }),
+    onSuccess: (res) => {
+      if (res.data.success) {
+        setCheckedIn(!checkedIn);
+        queryClient.invalidateQueries({ queryKey: ['attendance', user.id] });
+      }
+    },
+    onError: (err) => {
+      console.error(err);
+    }
+  });
 
   const handleCheckInOut = (type: string) => {
-    setCheckingIn(true);
     const endpoint = checkedIn ? '/api/attendance/check-out' : '/api/attendance/check-in';
-
-    axios.post(endpoint, { userId: user.id, branchId: user.branchId, type })
-      .then(res => {
-        setCheckingIn(false);
-        if (res.data.success) {
-          setCheckedIn(!checkedIn);
-          fetchLogs();
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        setCheckingIn(false);
-      });
+    checkInOutMutation.mutate({ endpoint, type });
   };
 
   // Calendar Helpers
@@ -113,6 +122,19 @@ export default function AttendanceView() {
         }
       }
 
+      const mmdd = `${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+      const holidayName = GOVT_HOLIDAYS[mmdd];
+
+      if (holidayName && !dayLeave && !dayLog) {
+        bgColor = 'bg-blue-900/20';
+        statusUi = (
+          <div className="flex flex-col items-center mt-1 text-blue-400">
+            <AlertCircle className="w-4 h-4 mb-1" />
+            <span className="text-[10px] font-medium leading-tight text-center">{holidayName}</span>
+          </div>
+        );
+      }
+
       const isToday = dateStr === new Date().toISOString().split('T')[0];
 
       days.push(
@@ -125,14 +147,30 @@ export default function AttendanceView() {
 
     return (
       <div className="flex-1 w-full">
-        <div className="flex justify-between items-center mb-4 px-2">
-          <button onClick={prevMonth} className="p-1.5 rounded-full hover:bg-glass-item border border-transparent hover:border-glass-border text-glass-text transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h3 className="text-lg font-semibold text-glass-text">{monthName}</h3>
-          <button onClick={nextMonth} className="p-1.5 rounded-full hover:bg-glass-item border border-transparent hover:border-glass-border text-glass-text transition-colors">
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 mb-4 px-2">
+          <div className="flex items-center">
+            <button onClick={prevMonth} className="p-1.5 rounded-full hover:bg-glass-item border border-transparent hover:border-glass-border text-glass-text transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-semibold text-glass-text mx-4 w-40 text-center">{monthName}</h3>
+            <button onClick={nextMonth} className="p-1.5 rounded-full hover:bg-glass-item border border-transparent hover:border-glass-border text-glass-text transition-colors">
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <label className="text-xs text-glass-text-muted font-medium">Go to:</label>
+            <input 
+              type="month" 
+              value={`${year}-${month.toString().padStart(2, '0')}`}
+              onChange={(e) => {
+                if(e.target.value) {
+                  const [y, m] = e.target.value.split('-');
+                  setCurrentDate(new Date(Number(y), Number(m) - 1, 1));
+                }
+              }}
+              className="bg-glass-item border border-glass-border rounded-lg px-3 py-1.5 text-sm text-glass-text focus:outline-none focus:border-glass-accent"
+            />
+          </div>
         </div>
         <div className="grid grid-cols-7 text-center mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -161,13 +199,13 @@ export default function AttendanceView() {
             <div className="flex gap-4 w-full md:w-auto">
               <button
                 onClick={() => handleCheckInOut('App')}
-                disabled={checkingIn}
+                disabled={checkInOutMutation.isPending}
                 className={`flex-1 md:flex-none py-3 px-6 rounded-lg font-medium flex items-center justify-center transition-colors ${checkedIn
                     ? 'bg-glass-accent text-white hover:bg-[#a00f1a]'
                     : 'bg-glass-item border border-glass-border text-glass-text hover:bg-glass-panel-hover'
                   }`}
               >
-                {checkingIn ? (
+                {checkInOutMutation.isPending ? (
                   <span className="animate-pulse">Processing...</span>
                 ) : (
                   <>

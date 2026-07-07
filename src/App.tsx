@@ -20,7 +20,7 @@ const AIChatView = lazy(() => import('./views/AIChatView'));
 
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-full min-h-[200px]">
+    <div className="flex items-center justify-center h-full min-h-50">
       <Loader2 className="w-8 h-8 text-glass-accent animate-spin" />
     </div>
   );
@@ -36,7 +36,7 @@ function HomePage() {
   }, [user, navigate]);
 
   return (
-    <div className="h-[100dvh] w-full overflow-y-auto lg:overflow-hidden bg-glass-bg font-sans flex flex-col lg:flex-row relative">
+    <div className="h-dvh w-full overflow-y-auto lg:overflow-hidden bg-zinc-950 font-sans flex flex-col lg:flex-row relative">
       {/* Blobs */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-red-900/15 rounded-full filter blur-3xl animate-blob pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#C1121F]/10 rounded-full filter blur-3xl animate-blob animation-delay-2000 pointer-events-none" />
@@ -205,7 +205,7 @@ function TeamPortalPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen w-full bg-glass-bg text-glass-text">
+      <div className="flex items-center justify-center h-screen w-full bg-zinc-950 text-zinc-200">
         <div className="flex items-center space-x-3">
           <Coffee className="w-6 h-6 text-glass-accent animate-pulse" />
           <span className="font-semibold">Loading Team Portal...</span>
@@ -263,75 +263,77 @@ function TeamPortalPage() {
   const sortedGroups = roleOrder.filter(r => grouped[r]);
 
   return (
-    <div className="h-[100dvh] w-full overflow-hidden bg-glass-bg text-glass-text font-sans flex flex-col relative">
+    <div className="h-dvh w-full overflow-hidden bg-zinc-950 text-zinc-200 font-sans flex flex-col relative">
       {/* Blob background */}
       <div className="absolute top-0 right-0 w-72 h-72 bg-red-900/10 rounded-full filter blur-3xl animate-blob pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-60 h-60 bg-[#C1121F]/8 rounded-full filter blur-3xl animate-blob animation-delay-4000 pointer-events-none" />
 
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-glass-border bg-glass-panel backdrop-blur-md z-10">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-800/60 bg-zinc-900/40 backdrop-blur-md z-10">
         <div className="flex items-center space-x-3">
           <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
             <div className="w-7 h-7 rounded-lg bg-glass-accent flex items-center justify-center">
               <Coffee className="w-4 h-4 text-white" />
             </div>
           </Link>
-          <span className="text-glass-text font-semibold text-sm">Team Portal</span>
-          <span className="text-glass-text-muted text-xs">/ Select Profile</span>
+          <span className="text-zinc-100 font-semibold text-sm">Team Portal</span>
+          <span className="text-zinc-500 text-xs hidden sm:inline">/ Select Profile</span>
         </div>
-        <Link to="/" className="text-xs text-glass-text-muted hover:text-glass-text transition">← Back</Link>
+        <Link to="/" className="text-xs text-zinc-500 hover:text-zinc-200 transition">← Back</Link>
       </div>
 
       {/* Finder Body */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
         {/* ── Sidebar (Branch Folders) ── */}
-        <div className="w-56 shrink-0 border-r border-glass-border bg-glass-panel/20 overflow-y-auto flex flex-col">
-          <div className="px-3 pt-4 pb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-2 mb-1">Branches</p>
+        <div className="w-full md:h-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-zinc-800/60 bg-zinc-900/20 flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto custom-scrollbar md:custom-scrollbar-none">
+          <div className="hidden md:block px-3 pt-4 pb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-2 mb-1">Admin</p>
           </div>
 
           {/* Admin section in sidebar */}
           <button
             onClick={() => setSelectedBranch(null)}
-            className={`flex items-center space-x-2.5 px-3 py-2 mx-2 rounded-lg text-sm transition-all ${selectedBranch === null ? 'bg-glass-accent text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}`}
+            className={`flex items-center space-x-2.5 px-4 py-2.5 md:px-3 md:py-2 mx-2 my-2 md:my-0 shrink-0 rounded-lg text-sm transition-all ${selectedBranch === null ? 'bg-glass-accent text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}`}
           >
             <Shield className={`w-4 h-4 shrink-0 ${selectedBranch === null ? 'text-white' : 'text-red-500'}`} />
-            <span className="truncate font-medium">HQ Admin</span>
-            <span className="ml-auto text-[10px] opacity-60">{admins.length}</span>
+            <span className="font-medium whitespace-nowrap">HQ Admin</span>
+            <span className="hidden md:inline ml-auto text-[10px] opacity-60">{admins.length}</span>
           </button>
 
-          <div className="px-3 pt-4 pb-2">
+          <div className="hidden md:block px-3 pt-4 pb-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-2 mb-1">Branches</p>
           </div>
+
+          <div className="w-px h-8 bg-zinc-800/60 self-center mx-2 md:hidden shrink-0"></div>
 
           {Object.entries(branchMap).map(([branchId, branch]) => {
             const isOpen = expandedBranches[branchId];
             const isSelected = selectedBranch === branchId;
             const totalCount = branch.managers.length + branch.supervisors.length + branch.employees.length;
             return (
-              <div key={branchId}>
+              <div key={branchId} className="shrink-0 flex items-center md:block md:w-full">
                 <button
                   onClick={() => toggleBranch(branchId)}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 mx-2 rounded-lg text-sm transition-all group ${isSelected ? 'bg-glass-accent text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}`}
-                  style={{ width: 'calc(100% - 1rem)' }}
+                  className={`flex items-center space-x-2.5 px-4 py-2.5 md:px-3 md:py-2 mx-2 my-2 md:my-0 rounded-lg text-sm transition-all group ${isSelected ? 'bg-glass-accent text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}`}
+                  style={{ width: 'max-content' }}
                 >
                   {isOpen
                     ? <FolderOpen className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-amber-500'}`} />
                     : <Folder className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-amber-500/70'}`} />
                   }
-                  <span className="truncate font-medium text-left">{branch.name}</span>
-                  <span className="ml-auto text-[10px] opacity-60 shrink-0">{totalCount}</span>
+                  <span className="font-medium whitespace-nowrap">{branch.name}</span>
+                  <span className="hidden md:inline ml-auto text-[10px] opacity-60 shrink-0">{totalCount}</span>
                   {isOpen
-                    ? <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
-                    : <ChevronRight className="w-3 h-3 shrink-0 opacity-30" />
+                    ? <ChevronDown className="hidden md:block w-3 h-3 shrink-0 opacity-50 ml-2" />
+                    : <ChevronRight className="hidden md:block w-3 h-3 shrink-0 opacity-30 ml-2" />
                   }
                 </button>
               </div>
             );
           })}
 
-          <div className="flex-1" />
-          <div className="px-4 py-4 border-t border-zinc-800/40">
+          <div className="flex-1 hidden md:block" />
+          <div className="hidden md:block px-4 py-4 border-t border-zinc-800/40">
             <p className="text-[10px] text-zinc-600">{allUsers.length} total members</p>
           </div>
         </div>
@@ -339,12 +341,12 @@ function TeamPortalPage() {
         {/* ── Content Panel (User List) ── */}
         <div className="flex-1 overflow-y-auto">
           {/* Content header */}
-          <div className="sticky top-0 z-10 px-6 py-3 bg-glass-panel backdrop-blur-md border-b border-glass-border flex items-center space-x-2">
+          <div className="sticky top-0 z-10 px-6 py-3 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800/60 flex items-center space-x-2">
             {selectedBranch === null
-              ? <><Shield className="w-4 h-4 text-red-500" /><span className="text-sm font-semibold text-glass-text">HQ Administration</span></>
-              : <><FolderOpen className="w-4 h-4 text-amber-500" /><span className="text-sm font-semibold text-glass-text">{branchMap[selectedBranch]?.name}</span></>
+              ? <><Shield className="w-4 h-4 text-red-500" /><span className="text-sm font-semibold text-zinc-100">HQ Administration</span></>
+              : <><FolderOpen className="w-4 h-4 text-amber-500" /><span className="text-sm font-semibold text-zinc-100">{branchMap[selectedBranch]?.name}</span></>
             }
-            <span className="text-xs text-glass-text-muted ml-1">— click a name to sign in</span>
+            <span className="text-xs text-zinc-500 ml-1 hidden sm:inline">— click a name to sign in</span>
           </div>
 
           {/* User Rows grouped by role */}
