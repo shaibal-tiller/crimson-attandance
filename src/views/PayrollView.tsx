@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Download, FileText, Loader2, Plus, X } from 'lucide-react';
+import { Download, FileText, Loader2, Plus, X, Eye, Printer } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function PayrollView() {
@@ -14,6 +14,7 @@ export default function PayrollView() {
   const [month, setMonth] = useState('October 2023');
   const [amount, setAmount] = useState('৳ 20,000');
   const [status, setStatus] = useState('Paid');
+  const [selectedPayslip, setSelectedPayslip] = useState<any | null>(null);
 
   const isManager = user.role === 'Manager' || user.role === 'Admin' || user.role === 'Supervisor';
 
@@ -164,9 +165,13 @@ export default function PayrollView() {
             <div className="p-6 text-center text-glass-text-muted">No payslips found.</div>
           ) : (
             payslips.map(slip => (
-              <div key={slip.id} className="p-6 flex items-center justify-between hover:bg-glass-panel-hover transition-colors">
+              <div 
+                key={slip.id} 
+                onClick={() => setSelectedPayslip(slip)}
+                className="p-6 flex items-center justify-between hover:bg-glass-panel-hover transition-colors cursor-pointer group"
+              >
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-glass-accent-light text-glass-accent rounded-lg">
+                  <div className="p-3 bg-glass-accent-light text-glass-accent rounded-lg group-hover:bg-glass-accent group-hover:text-white transition-colors">
                     <FileText className="w-6 h-6" />
                   </div>
                   <div>
@@ -176,22 +181,245 @@ export default function PayrollView() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-glass-text">{slip.amount}</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 mt-1 rounded text-[10px] font-medium text-white ${slip.status === 'Paid' ? 'bg-[#2D6A4F]' : 'bg-yellow-600'}`}>
-                    {slip.status}
-                  </span>
+                
+                <div className="flex items-center space-x-6">
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-glass-text">{slip.amount}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 mt-1 rounded text-[10px] font-medium text-white ${slip.status === 'Paid' ? 'bg-[#2D6A4F]' : 'bg-yellow-600'}`}>
+                      {slip.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setSelectedPayslip(slip); }}
+                      className="p-2 bg-glass-item border border-glass-border text-glass-text hover:bg-glass-panel-hover rounded-lg transition" 
+                      title="Preview Payslip"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDownload(slip, getUserName(slip.userId)); }}
+                      className="p-2 bg-glass-accent/15 border border-glass-accent/30 text-glass-text hover:bg-glass-accent hover:text-white rounded-lg transition" 
+                      title="Download Invoice"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                {!isManager && (
-                  <button className="p-2 text-glass-text-muted hover:text-white transition-colors" title="Download">
-                    <Download className="w-5 h-5" />
-                  </button>
-                )}
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Payslip Preview Modal Overlay */}
+      {selectedPayslip && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel p-6 rounded-2xl max-w-lg w-full relative border border-glass-border shadow-2xl animate-fade-in flex flex-col">
+            <button 
+              onClick={() => setSelectedPayslip(null)}
+              className="absolute top-4 right-4 text-glass-text-muted hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-2.5 mb-6">
+              <FileText className="w-6 h-6 text-glass-accent" />
+              <h2 className="text-lg font-bold text-glass-text">Payslip Preview</h2>
+            </div>
+
+            {/* Corporate Invoice Receipt Template */}
+            <div id="print-payslip-area" className="bg-white text-zinc-950 p-6 rounded-xl border border-zinc-200 font-sans text-sm space-y-6">
+              <div className="flex justify-between border-b border-zinc-200 pb-4">
+                <div>
+                  <h3 className="font-extrabold text-lg text-red-700 leading-tight">Crimson Cup BD</h3>
+                  <p className="text-[10px] text-zinc-500 uppercase font-semibold mt-0.5">Corporate HQ, Dhaka</p>
+                </div>
+                <div className="text-right">
+                  <h4 className="font-bold text-sm text-zinc-800">Payslip Receipt</h4>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">ID: {selectedPayslip.id}</p>
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase">Employee Details</p>
+                  <p className="font-bold text-zinc-900 mt-1">{getUserName(selectedPayslip.userId)}</p>
+                  <p className="text-[11px] text-zinc-500">ID: {selectedPayslip.userId}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase">Statement Period</p>
+                  <p className="font-bold text-zinc-900 mt-1">{selectedPayslip.month}</p>
+                  <p className="text-[11px] text-zinc-500">Issued: {selectedPayslip.date}</p>
+                </div>
+              </div>
+
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-300">
+                    <th className="text-left font-bold text-xs text-zinc-700 pb-2">Description</th>
+                    <th className="text-right font-bold text-xs text-zinc-700 pb-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-zinc-100">
+                    <td className="py-2 text-zinc-800 text-xs">Base Salary & Allowances</td>
+                    <td className="py-2 text-right font-medium text-zinc-950 text-xs">{selectedPayslip.amount}</td>
+                  </tr>
+                  <tr className="font-extrabold text-sm border-t-2 border-zinc-300">
+                    <td className="pt-3 text-zinc-900">Total Net Pay</td>
+                    <td className="pt-3 text-right text-red-700 text-base">{selectedPayslip.amount}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="flex justify-between pt-10 text-[10px] text-zinc-500">
+                <div>
+                  <div className="border-b border-zinc-300 w-32 pb-4"></div>
+                  <p className="mt-1 text-center">Employee Signature</p>
+                </div>
+                <div className="text-right">
+                  <div className="border-b border-zinc-300 w-32 pb-4"></div>
+                  <p className="mt-1 text-center">Authorized Signatory</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex space-x-3 mt-6 pt-4 border-t border-glass-border justify-end">
+              <button 
+                onClick={() => handleDownload(selectedPayslip, getUserName(selectedPayslip.userId))}
+                className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border text-glass-text rounded-xl text-xs font-semibold transition"
+              >
+                <Download className="w-4 h-4 mr-1.5" />
+                Download HTML
+              </button>
+              <button 
+                onClick={() => {
+                  const printContents = document.getElementById('print-payslip-area')?.innerHTML;
+                  const originalContents = document.body.innerHTML;
+                  if (printContents) {
+                    const printWindow = window.open('', '_blank');
+                    printWindow?.document.write(`
+                      <html>
+                        <head>
+                          <title>Print Payslip</title>
+                          <style>
+                            body { font-family: sans-serif; padding: 20px; }
+                            #print-payslip-area { background: #white; width: 100%; max-width: 600px; margin: 0 auto; }
+                          </style>
+                        </head>
+                        <body>
+                          ${printContents}
+                          <script>window.onload = function() { window.print(); window.close(); }</script>
+                        </body>
+                      </html>
+                    `);
+                    printWindow?.document.close();
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-glass-accent hover:bg-red-500 text-white rounded-xl text-xs font-bold transition border border-glass-accent/30"
+              >
+                <Printer className="w-4 h-4 mr-1.5" />
+                Print Payslip
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// Add the helper function inside the component before render
+const handleDownload = (slip: any, empName: string) => {
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+<title>Payslip - ${slip.month}</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; padding: 40px; background-color: #f9f9f9; }
+  .invoice-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: 0 auto; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+  .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
+  .logo { color: #b91c1c; font-size: 24px; font-weight: bold; }
+  .title { text-align: right; }
+  .meta { display: flex; justify-content: space-between; margin-bottom: 30px; }
+  .meta-item label { font-size: 10px; text-transform: uppercase; color: #718096; font-weight: bold; }
+  .meta-item p { margin: 4px 0 0 0; font-size: 14px; font-weight: 500; }
+  .table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+  .table th { text-align: left; padding: 10px; border-bottom: 1px solid #cbd5e0; color: #4a5568; font-size: 12px; }
+  .table td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+  .total-row td { font-weight: bold; border-top: 2px solid #cbd5e0; }
+  .footer { text-align: center; font-size: 11px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="invoice-card">
+  <div class="header">
+    <div class="logo">Crimson Cup BD</div>
+    <div class="title">
+      <h2 style="margin: 0; font-size: 20px;">Payslip Receipt</h2>
+      <p style="margin: 4px 0 0 0; font-size: 12px; color: #718096;">ID: ${slip.id}</p>
+    </div>
+  </div>
+  
+  <div class="meta">
+    <div class="meta-item">
+      <label>Employee Details</label>
+      <p style="font-size: 16px; font-weight: bold; margin-bottom: 2px;">${empName}</p>
+      <p style="font-size: 12px; color: #718096; margin: 0;">ID: ${slip.userId}</p>
+    </div>
+    <div class="meta-item" style="text-align: right;">
+      <label>Statement Month</label>
+      <p style="font-size: 16px; font-weight: bold; margin: 0;">${slip.month}</p>
+      <p style="font-size: 12px; color: #718096; margin: 4px 0 0 0;">Issued: ${slip.date}</p>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align: right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Base Salary & Allowances</td>
+        <td style="text-align: right;">${slip.amount}</td>
+      </tr>
+      <tr class="total-row">
+        <td>Total Net Pay</td>
+        <td style="text-align: right; color: #b91c1c; font-size: 18px;">${slip.amount}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 12px;">
+    <div>
+      <div style="border-bottom: 1px solid #cbd5e0; width: 150px; padding-bottom: 5px;"></div>
+      <p style="margin: 5px 0 0 0; color: #718096; text-align: center;">Employee Signature</p>
+    </div>
+    <div style="text-align: right;">
+      <div style="border-bottom: 1px solid #cbd5e0; width: 150px; padding-bottom: 5px;"></div>
+      <p style="margin: 5px 0 0 0; color: #718096; text-align: center;">Authorized Signatory</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    This is a system generated payslip receipt for Crimson Cup Bangladesh. All amounts in BDT.
+  </div>
+</div>
+</body>
+</html>
+  `;
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Payslip_${slip.month.replace(' ', '_')}_${empName.replace(' ', '_')}.html`;
+  link.click();
+};

@@ -19,7 +19,7 @@ export default function AttendanceView() {
     ]).then(([attRes, leaveRes]) => {
       const data = attRes.data || [];
       const lData = leaveRes.data || [];
-      
+
       const userLogs = data.filter((l: any) => l.userId === user.id);
       const userLeaves = lData.filter((l: any) => l.userId === user.id);
       setLogs(userLogs);
@@ -34,19 +34,19 @@ export default function AttendanceView() {
   const handleCheckInOut = (type: string) => {
     setCheckingIn(true);
     const endpoint = checkedIn ? '/api/attendance/check-out' : '/api/attendance/check-in';
-    
+
     axios.post(endpoint, { userId: user.id, branchId: user.branchId, type })
-    .then(res => {
-      setCheckingIn(false);
-      if(res.data.success) {
-        setCheckedIn(!checkedIn);
-        fetchLogs();
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      setCheckingIn(false);
-    });
+      .then(res => {
+        setCheckingIn(false);
+        if (res.data.success) {
+          setCheckedIn(!checkedIn);
+          fetchLogs();
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        setCheckingIn(false);
+      });
   };
 
   // Calendar Helpers
@@ -69,7 +69,7 @@ export default function AttendanceView() {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-      
+
       const dayLog = logs.find(l => l.date === dateStr);
       const dayLeave = leaves.find(l => {
         // Leave is startDate to endDate
@@ -97,19 +97,19 @@ export default function AttendanceView() {
             <div className="flex flex-col items-center mt-1 text-[#2D6A4F]">
               <CheckCircle2 className="w-4 h-4 mb-1" />
               <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">
-                {dayLog.checkIn} <br/> {dayLog.checkOut || '-'}
+                {dayLog.checkIn} <br /> {dayLog.checkOut || '-'}
               </span>
             </div>
           );
         } else {
-           // Late or Absent
-           bgColor = 'bg-red-900/20';
-           statusUi = (
-             <div className="flex flex-col items-center mt-1 text-red-500">
-               <XCircle className="w-4 h-4 mb-1" />
-               <span className="text-[10px] font-medium leading-tight text-center">{dayLog.status}</span>
-             </div>
-           );
+          // Late or Absent
+          bgColor = 'bg-red-900/20';
+          statusUi = (
+            <div className="flex flex-col items-center mt-1 text-red-500">
+              <XCircle className="w-4 h-4 mb-1" />
+              <span className="text-[10px] font-medium leading-tight text-center">{dayLog.status}</span>
+            </div>
+          );
         }
       }
 
@@ -159,14 +159,13 @@ export default function AttendanceView() {
             <h2 className="text-lg font-semibold text-glass-text mb-2">Current Status: {checkedIn ? 'Checked In' : 'Not Checked In'}</h2>
             <p className="text-sm text-glass-text-muted mb-4">Location: {user.branchName} (Geofence Active)</p>
             <div className="flex gap-4 w-full md:w-auto">
-              <button 
+              <button
                 onClick={() => handleCheckInOut('App')}
                 disabled={checkingIn}
-                className={`flex-1 md:flex-none py-3 px-6 rounded-lg font-medium flex items-center justify-center transition-colors ${
-                  checkedIn 
-                    ? 'bg-glass-accent text-white hover:bg-[#a00f1a]' 
+                className={`flex-1 md:flex-none py-3 px-6 rounded-lg font-medium flex items-center justify-center transition-colors ${checkedIn
+                    ? 'bg-glass-accent text-white hover:bg-[#a00f1a]'
                     : 'bg-glass-item border border-glass-border text-glass-text hover:bg-glass-panel-hover'
-                }`}
+                  }`}
               >
                 {checkingIn ? (
                   <span className="animate-pulse">Processing...</span>
@@ -179,7 +178,7 @@ export default function AttendanceView() {
               </button>
             </div>
           </div>
-          
+
           <div className="hidden md:flex flex-col items-center justify-center px-8 border-l border-glass-border-light space-y-4">
             <p className="text-sm font-medium text-glass-text-muted text-center">Hardware Simulators</p>
             <div className="flex gap-4">

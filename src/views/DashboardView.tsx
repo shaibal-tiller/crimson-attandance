@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Users, UserCheck, AlertTriangle, Coffee, Loader2, Check, X } from 'lucide-react';
+import { 
+  Users, UserCheck, AlertTriangle, Coffee, Loader2, Check, X, 
+  PlusCircle, ShieldAlert, FileText, Clock, Calendar, CheckSquare, Sparkles 
+} from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
 export default function DashboardView() {
@@ -11,7 +15,18 @@ export default function DashboardView() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Add member states
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [branchesList, setBranchesList] = useState<any[]>([]);
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState('Employee');
+  const [newBranchId, setNewBranchId] = useState(user.branchId || '');
+  const [addingMember, setAddingMember] = useState(false);
+  const [addMessage, setAddMessage] = useState('');
+
   const isManager = user.role === 'Admin' || user.role === 'Manager' || user.role === 'Supervisor';
+  const canAddMember = user.role === 'Admin' || user.role === 'Manager';
 
   const fetchDashboard = async () => {
     try {
@@ -76,6 +91,19 @@ export default function DashboardView() {
 
   useEffect(() => {
     fetchDashboard();
+    if (canAddMember) {
+      axios.get('/api/branches')
+        .then(res => {
+          setBranchesList(res.data || []);
+          // Preselect branch for managers
+          if (user.role !== 'Admin') {
+            setNewBranchId(user.branchId);
+          } else if (res.data?.length > 0) {
+            setNewBranchId(res.data[0].id);
+          }
+        })
+        .catch(err => console.error(err));
+    }
   }, [user]);
 
   const handleLeaveAction = async (id: string, status: string) => {
@@ -84,6 +112,37 @@ export default function DashboardView() {
   
   const handleOvertimeAction = async (id: string, status: string) => {
     try { await axios.put(`/api/overtime/${id}`, { status }); fetchDashboard(); } catch(err) { console.error(err); }
+  };
+
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName || !newEmail || !newBranchId) return;
+    setAddingMember(true);
+    setAddMessage('');
+    try {
+      const selectedB = branchesList.find(b => b.id === newBranchId) || { name: user.branchName };
+      await axios.post('/api/users', {
+        name: newName,
+        email: newEmail,
+        role: newRole,
+        branchId: newBranchId,
+        branchName: selectedB.name
+      });
+      setAddMessage('Member added successfully!');
+      setNewName('');
+      setNewEmail('');
+      setNewRole('Employee');
+      fetchDashboard();
+      setTimeout(() => {
+        setShowAddMember(false);
+        setAddMessage('');
+      }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      setAddMessage(err.response?.data?.error || 'Failed to add member');
+    } finally {
+      setAddingMember(false);
+    }
   };
 
   if (loading) {
@@ -95,12 +154,50 @@ export default function DashboardView() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+    <div className="space-y-6 pb-12">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-glass-text">Welcome back, {user.name}</h1>
           <p className="text-sm text-glass-text-muted">Here's what's happening at {user.branchName} today.</p>
         </div>
+        {canAddMember && (
+          <button 
+            onClick={() => setShowAddMember(true)}
+            className="flex items-center justify-center bg-glass-accent hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-glass-accent/20 border border-glass-accent/30 active:scale-95 shrink-0"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Add Team Member
+          </button>
+        )}
+      </div>
+
+      {/* Quick Action Navigation Links */}
+      <div className="glass-panel p-4 rounded-2xl flex flex-wrap gap-2.5">
+        <Link to="/attendance" className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border hover:border-glass-accent/30 rounded-xl text-xs font-semibold text-glass-text transition-colors">
+          <Clock className="w-3.5 h-3.5 mr-1.5 text-glass-accent" />
+          Check In/Out
+        </Link>
+        <Link to="/roster" className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border hover:border-glass-accent/30 rounded-xl text-xs font-semibold text-glass-text transition-colors">
+          <Calendar className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+          Roster & Leave Requests
+        </Link>
+        <Link to="/overtime" className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border hover:border-glass-accent/30 rounded-xl text-xs font-semibold text-glass-text transition-colors">
+          <CheckSquare className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+          Log Overtime Hours
+        </Link>
+        <Link to="/payroll" className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border hover:border-glass-accent/30 rounded-xl text-xs font-semibold text-glass-text transition-colors">
+          <FileText className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+          View Payslips
+        </Link>
+        <Link to="/inventory" className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border hover:border-glass-accent/30 rounded-xl text-xs font-semibold text-glass-text transition-colors">
+          <Coffee className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
+          Inventory Audit
+        </Link>
+        <Link to="/ai" className="flex items-center px-4 py-2 bg-glass-accent/20 hover:bg-glass-accent/35 border border-glass-accent/30 rounded-xl text-xs font-bold text-white transition-colors">
+          <Sparkles className="w-3.5 h-3.5 mr-1.5 text-glass-text animate-pulse" />
+          Ask AI Assistant
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -164,6 +261,102 @@ export default function DashboardView() {
           </div>
         </div>
       </div>
+
+      {/* Add Member Modal Overlay */}
+      {showAddMember && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel p-6 rounded-2xl max-w-md w-full relative border border-glass-border shadow-2xl animate-fade-in">
+            <button 
+              onClick={() => { setShowAddMember(false); setAddMessage(''); }}
+              className="absolute top-4 right-4 text-glass-text-muted hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center space-x-2.5 mb-4">
+              <PlusCircle className="w-6 h-6 text-glass-accent" />
+              <h2 className="text-lg font-bold text-glass-text">Add New Team Member</h2>
+            </div>
+            
+            <form onSubmit={handleAddMemberSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-glass-text-muted mb-1.5">Full Name</label>
+                <input 
+                  type="text" 
+                  value={newName} 
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder="e.g. Tanvir Rahman"
+                  className="w-full bg-glass-item border border-glass-border focus:border-glass-accent rounded-xl p-2.5 text-sm text-glass-text focus:outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-glass-text-muted mb-1.5">Email Address</label>
+                <input 
+                  type="email" 
+                  value={newEmail} 
+                  onChange={e => setNewEmail(e.target.value)}
+                  placeholder="e.g. tanvir@crimsoncup.com"
+                  className="w-full bg-glass-item border border-glass-border focus:border-glass-accent rounded-xl p-2.5 text-sm text-glass-text focus:outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-glass-text-muted mb-1.5">Role Type</label>
+                  <select 
+                    value={newRole} 
+                    onChange={e => setNewRole(e.target.value)}
+                    className="w-full bg-glass-item border border-glass-border focus:border-glass-accent rounded-xl p-2.5 text-sm text-glass-text focus:outline-none transition-colors"
+                  >
+                    <option value="Employee">Employee</option>
+                    <option value="Supervisor">Supervisor</option>
+                    {user.role === 'Admin' && <option value="Manager">Manager</option>}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-glass-text-muted mb-1.5">Assign Branch</label>
+                  {user.role === 'Admin' ? (
+                    <select 
+                      value={newBranchId} 
+                      onChange={e => setNewBranchId(e.target.value)}
+                      className="w-full bg-glass-item border border-glass-border focus:border-glass-accent rounded-xl p-2.5 text-sm text-glass-text focus:outline-none transition-colors"
+                      required
+                    >
+                      {branchesList.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      value={user.branchName} 
+                      disabled
+                      className="w-full bg-zinc-900/60 border border-glass-border rounded-xl p-2.5 text-sm text-zinc-500 cursor-not-allowed"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {addMessage && (
+                <div className={`p-3 rounded-xl text-xs font-medium text-center ${addMessage.includes('successfully') ? 'bg-[#2D6A4F]/20 text-[#2D6A4F]' : 'bg-red-500/10 text-red-400'}`}>
+                  {addMessage}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={addingMember}
+                className="w-full bg-glass-accent hover:bg-red-500 text-white py-2.5 rounded-xl font-bold transition shadow-lg shadow-glass-accent/15 border border-glass-accent/20 active:scale-[0.98] disabled:opacity-50"
+              >
+                {addingMember ? 'Saving member...' : 'Save Team Member'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
