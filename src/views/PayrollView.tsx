@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, Loader2, Plus, X, Eye, Printer } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import toast from 'react-hot-toast';
+import html2pdf from 'html2pdf.js';
 
 export default function PayrollView() {
   const { user } = useUser();
@@ -58,8 +60,12 @@ export default function PayrollView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll', user.id] });
       setShowGenerate(false);
+      toast.success('Payslip generated successfully!');
     },
-    onError: (err) => console.error(err)
+    onError: (err) => {
+      console.error(err);
+      toast.error('Failed to generate payslip.');
+    }
   });
 
   // Derived State Calculations
@@ -350,7 +356,7 @@ export default function PayrollView() {
                 className="flex items-center px-4 py-2 bg-glass-item hover:bg-glass-panel-hover border border-glass-border text-glass-text rounded-xl text-xs font-semibold transition"
               >
                 <Download className="w-4 h-4 mr-1.5" />
-                Download HTML
+                Download PDF
               </button>
               <button 
                 onClick={() => {
@@ -490,10 +496,17 @@ const generatePayslipHTML = (slip: any, empName: string) => {
 
 const handleDownload = (slip: any, empName: string) => {
   const htmlContent = generatePayslipHTML(slip, empName);
-  const blob = new Blob([htmlContent], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Payslip_${slip.month.replace(' ', '_')}_${empName.replace(' ', '_')}.html`;
-  link.click();
+  
+  const container = document.createElement('div');
+  container.innerHTML = htmlContent;
+  
+  const opt = {
+    margin:       10,
+    filename:     `Payslip_${slip.month.replace(' ', '_')}_${empName.replace(' ', '_')}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  html2pdf().from(container).set(opt).save();
 };

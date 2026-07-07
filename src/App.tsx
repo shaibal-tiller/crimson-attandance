@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import {
   Coffee, Loader2, ChevronRight, ChevronDown, Shield, Award,
   UserCheck, User as UserIcon, Folder, FolderOpen, ArrowRight, Sparkles
@@ -414,6 +415,25 @@ function TeamPortalPage() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <Toaster position="top-right" toastOptions={{
+        style: {
+          background: '#18181b',
+          color: '#fff',
+          border: '1px solid #27272a',
+        },
+        success: {
+          iconTheme: {
+            primary: '#10b981',
+            secondary: '#fff',
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#fff',
+          },
+        },
+      }} />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<TeamPortalPage />} />
