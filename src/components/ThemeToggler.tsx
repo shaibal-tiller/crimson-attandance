@@ -12,7 +12,7 @@ export default function ThemeToggler({ className }: { className?: string }) {
   ];
 
   return (
-    <div className={cn("flex items-center p-1 bg-zinc-900/60 dark:bg-zinc-900/40 border border-glass-border rounded-xl shadow-inner", className)}>
+    <div className={cn("flex items-center p-1 bg-glass-item border border-glass-border rounded-xl shadow-inner", className)}>
       {options.map((opt) => {
         const Icon = opt.icon;
         const isActive = theme === opt.value;

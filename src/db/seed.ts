@@ -5,21 +5,23 @@ import { sql } from 'drizzle-orm';
 dotenv.config();
 
 const branchData = [
-  { id: 'all', name: 'HQ', location: 'HQ, Dhaka' },
-  { id: 'b1', name: 'Banani 11', location: 'Banani, Dhaka' },
-  { id: 'b2', name: 'Dhanmondi', location: 'Dhanmondi 27, Dhaka' },
-  { id: 'b3', name: 'Bashundhara', location: 'Bashundhara R/A, Dhaka' },
-  { id: 'b4', name: 'Uttara', location: 'Sector 11, Uttara, Dhaka' },
-  { id: 'b5', name: 'Mirpur', location: 'Mirpur 2, Dhaka' },
-  { id: 'b6', name: 'Gulshan 1', location: 'Gulshan 1, Dhaka' },
-  { id: 'b7', name: 'Khilgaon', location: 'Khilgaon, Dhaka' },
-  { id: 'b8', name: 'Baily Road', location: 'Baily Road, Dhaka' }
+  { id: 'all', name: 'HQ', location: 'Regnum Center, Tejgaon, Dhaka' },
+  { id: 'b1', name: 'Banani', location: 'Road 10A, Block H, Banani, Dhaka' },
+  { id: 'b2', name: 'Dhanmondi 27', location: 'Rangs Nasim Square, Dhanmondi 27, Dhaka' },
+  { id: 'b3', name: 'Dhanmondi 2', location: 'Rangs Fortune Square, Dhanmondi 2, Dhaka' },
+  { id: 'b4', name: 'Gulshan 2', location: 'House 2, Road 24, Gulshan 2, Dhaka' },
+  { id: 'b5', name: 'Uttara', location: 'Quantum Mostafa Tower, Gausul Azam Ave, Uttara' },
+  { id: 'b6', name: 'Tejgaon', location: 'Rahman Regnum Center, Tejgaon Link Rd, Dhaka' },
+  { id: 'b7', name: 'Bailey Road', location: 'Nasir House, Natok Shoroni, Bailey Road' },
+  { id: 'b8', name: 'Wari', location: '36 Rankin Street, Wari, Dhaka' },
+  { id: 'b9', name: 'Khilgaon', location: 'Shaheed Baki Road, Khilgaon, Dhaka' }
 ];
 
 const inventoryItems = [
   { category: 'Coffee', name: 'Espresso Beans', quantity: 45, unit: 'kg', threshold: 10, status: 'In Stock' },
   { category: 'Coffee', name: 'Colombian Roast', quantity: 4, unit: 'kg', threshold: 15, status: 'Low Stock' },
   { category: 'Coffee', name: 'Decaf Beans', quantity: 20, unit: 'kg', threshold: 5, status: 'In Stock' },
+  { category: 'Coffee', name: 'Crimson House Blend', quantity: 35, unit: 'kg', threshold: 12, status: 'In Stock' },
   { category: 'Syrups', name: 'Vanilla Syrup', quantity: 12, unit: 'bottles', threshold: 5, status: 'In Stock' },
   { category: 'Syrups', name: 'Caramel Syrup', quantity: 3, unit: 'bottles', threshold: 5, status: 'Low Stock' },
   { category: 'Syrups', name: 'Hazelnut Syrup', quantity: 8, unit: 'bottles', threshold: 5, status: 'In Stock' },
@@ -35,18 +37,54 @@ const inventoryItems = [
   { category: 'Dairy', name: 'Oat Milk', quantity: 8, unit: 'liters', threshold: 10, status: 'Low Stock' }
 ];
 
-const bdNames = ["Aarav Hossain", "Tahmid Rahman", "Nabila Islam", "Samir Khan", "Raisa Ahmed", "Anika Tabassum", "Kazi Mehedi", "Mehedi Hasan", "Fahim Ahmed", "Nusrat Jahan", "Imran Mahmud", "Tariqul Islam", "Sadia Akter", "Zarif Karim", "Tasnim Fariha", "Sakib Al Hasan", "Rubel Hossain", "Ayesha Siddiqa", "Mominul Haque", "Habib Wahid", "Nayeem Islam", "Farhana Amin", "Sajid Alam", "Rifat Hossen", "Shahriar Nafis", "Maliha Tasnim", "Iqbal Hossain", "Ashiqur Rahman", "Sabrina Zaman", "Mahmudullah", "Sadiya Afrin", "Rashed Khan", "Shuvo Chowdhury", "Fariha Sultana", "Jubayer Ahmed", "Tanvir Ahmed", "Sumaiya Akter", "Hasan Mahmud", "Ariful Islam", "Jamil Ahmed", "Kamrul Islam", "Nadim Chowdhury", "Parvez Hossain", "Sohail Tanvir", "Rina Akter", "Shahin Alam", "Sonia Rahman", "Sumon Ali", "Tania Akter"];
+const bdNames = [
+  "Mushfiqur Rahman", "Tahmid Hossain", "Nabila Islam", "Tanvir Anjum", "Raisa Ahmed", 
+  "Anika Tabassum", "Kazi Mehedi", "Fahim Murshed", "Nusrat Jahan", "Imran Mahmud", 
+  "Tariqul Islam", "Sadia Akter", "Zarif Karim", "Tasnim Fariha", "Sakib Hasan", 
+  "Rubel Hossain", "Ayesha Siddiqa", "Mominul Haque", "Habib Wahid", "Nayeem Islam", 
+  "Farhana Amin", "Sajid Alam", "Rifat Hossen", "Shahriar Nafis", "Maliha Tasnim", 
+  "Iqbal Hossain", "Ashiqur Rahman", "Sabrina Zaman", "Mahmudullah Riyad", "Sadiya Afrin", 
+  "Rashed Khan", "Shuvo Chowdhury", "Fariha Sultana", "Jubayer Ahmed", "Sumaiya Akter", 
+  "Hasan Mahmud", "Ariful Islam", "Jamil Ahmed", "Kamrul Islam", "Nadim Chowdhury", 
+  "Parvez Hossain", "Sohail Tanvir", "Rina Akter", "Shahin Alam", "Sonia Rahman"
+];
+
+// Curated high quality Pexels stock profile picture URLs
+const pexelsAvatars = [
+  "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/736716/pexels-photo-736716.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1181519/pexels-photo-1181519.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1845534/pexels-photo-1845534.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/839011/pexels-photo-839011.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1036622/pexels-photo-1036622.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150",
+  "https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=150&w=150"
+];
 
 const mockUsers = [
   { uid: 'u_admin_1', email: 'admin@crimsoncup.com', name: 'Rehan Admin', role: 'Admin', branchId: 'all', branchName: 'HQ' },
-  { uid: 'u_manager_1', email: 'manager_banani@crimsoncup.com', name: 'Shafayat Manager', role: 'Manager', branchId: 'b1', branchName: 'Banani 11' },
-  { uid: 'u_manager_2', email: 'manager_dhanmondi@crimsoncup.com', name: 'Raju Manager', role: 'Manager', branchId: 'b2', branchName: 'Dhanmondi' },
-  { uid: 'u_manager_3', email: 'manager_bmd@crimsoncup.com', name: 'Kaiser Manager', role: 'Manager', branchId: 'b3', branchName: 'Bashundhara' },
-  { uid: 'u_super_1', email: 'super_banani@crimsoncup.com', name: 'Rafiq Supervisor', role: 'Supervisor', branchId: 'b1', branchName: 'Banani 11' },
-  { uid: 'u_super_2', email: 'super_dhanmondi@crimsoncup.com', name: 'Hasan Supervisor', role: 'Supervisor', branchId: 'b2', branchName: 'Dhanmondi' },
-  { uid: 'u_super_3', email: 'super_uttara@crimsoncup.com', name: 'Jamal Supervisor', role: 'Supervisor', branchId: 'b4', branchName: 'Uttara' },
-  ...Array.from({ length: 42 }).map((_, i) => {
-    const branchesKeys = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8'];
+  
+  // Branch Managers
+  { uid: 'u_manager_1', email: 'manager_banani@crimsoncup.com', name: 'Shafayat Manager', role: 'Manager', branchId: 'b1', branchName: 'Banani' },
+  { uid: 'u_manager_2', email: 'manager_dhanmondi27@crimsoncup.com', name: 'Raju Manager', role: 'Manager', branchId: 'b2', branchName: 'Dhanmondi 27' },
+  { uid: 'u_manager_3', email: 'manager_dhanmondi2@crimsoncup.com', name: 'Kaiser Manager', role: 'Manager', branchId: 'b3', branchName: 'Dhanmondi 2' },
+  { uid: 'u_manager_4', email: 'manager_gulshan@crimsoncup.com', name: 'Asif Manager', role: 'Manager', branchId: 'b4', branchName: 'Gulshan 2' },
+  
+  // Supervisors
+  { uid: 'u_super_1', email: 'super_banani@crimsoncup.com', name: 'Rafiq Supervisor', role: 'Supervisor', branchId: 'b1', branchName: 'Banani' },
+  { uid: 'u_super_2', email: 'super_dhanmondi27@crimsoncup.com', name: 'Hasan Supervisor', role: 'Supervisor', branchId: 'b2', branchName: 'Dhanmondi 27' },
+  { uid: 'u_super_3', email: 'super_uttara@crimsoncup.com', name: 'Jamal Supervisor', role: 'Supervisor', branchId: 'b5', branchName: 'Uttara' },
+  
+  // Dynamic Baristas & Staff
+  ...Array.from({ length: 40 }).map((_, i) => {
+    const branchesKeys = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'b9'];
     const branchId = branchesKeys[i % branchesKeys.length];
     const branchName = branchData.find(b => b.id === branchId)?.name || 'Unknown';
     const name = bdNames[i % bdNames.length];
@@ -59,9 +97,9 @@ const mockUsers = [
       branchName
     };
   })
-].map(u => ({
+].map((u, index) => ({
   ...u,
-  avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&size=150`
+  avatar: pexelsAvatars[index % pexelsAvatars.length]
 }));
 
 async function seed() {

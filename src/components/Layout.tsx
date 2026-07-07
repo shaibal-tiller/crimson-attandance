@@ -43,7 +43,7 @@ export default function Layout() {
   const navigation = allNavigation.filter(nav => nav.roles.includes(user.role));
 
   return (
-    <div className="flex h-[100dvh] w-full text-glass-text font-sans overflow-hidden relative bg-zinc-950">
+    <div className="flex h-[100dvh] w-full text-glass-text font-sans overflow-hidden relative bg-glass-bg">
       <div className="bg-gradient-glass"></div>
       
       {/* Desktop Sidebar */}
