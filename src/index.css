@@ -62,3 +62,43 @@ html {
     overscroll-behavior-y: contain;
   }
 }
+
+/* Modern Blob Animations */
+@keyframes float-blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: float-blob 12s infinite ease-in-out;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Tree Connectors CSS */
+.org-line-v {
+  width: 2px;
+  background: linear-gradient(to bottom, rgba(193, 18, 31, 0.4), rgba(193, 18, 31, 0.1));
+}
+
+.org-line-h {
+  height: 2px;
+  background: rgba(193, 18, 31, 0.2);
+}
+
