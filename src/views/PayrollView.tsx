@@ -354,26 +354,11 @@ export default function PayrollView() {
               </button>
               <button 
                 onClick={() => {
-                  const printContents = document.getElementById('print-payslip-area')?.innerHTML;
-                  const originalContents = document.body.innerHTML;
-                  if (printContents) {
-                    const printWindow = window.open('', '_blank');
-                    printWindow?.document.write(`
-                      <html>
-                        <head>
-                          <title>Print Payslip</title>
-                          <style>
-                            body { font-family: sans-serif; padding: 20px; }
-                            #print-payslip-area { background: #white; width: 100%; max-width: 600px; margin: 0 auto; }
-                          </style>
-                        </head>
-                        <body>
-                          ${printContents}
-                          <script>window.onload = function() { window.print(); window.close(); }</script>
-                        </body>
-                      </html>
-                    `);
-                    printWindow?.document.close();
+                  const html = generatePayslipHTML(selectedPayslip, getUserName(selectedPayslip.userId));
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(html);
+                    printWindow.document.close();
                   }
                 }}
                 className="flex items-center px-4 py-2 bg-glass-accent hover:bg-red-500 text-white rounded-xl text-xs font-bold transition border border-glass-accent/30"
@@ -391,8 +376,8 @@ export default function PayrollView() {
 }
 
 // Add the helper function inside the component before render
-const handleDownload = (slip: any, empName: string) => {
-  const htmlContent = `
+const generatePayslipHTML = (slip: any, empName: string) => {
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -411,6 +396,10 @@ const handleDownload = (slip: any, empName: string) => {
   .table td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
   .total-row td { font-weight: bold; border-top: 2px solid #cbd5e0; }
   .footer { text-align: center; font-size: 11px; color: #a0aec0; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 40px; }
+  @media print {
+    body { padding: 0; background-color: #fff; }
+    .invoice-card { border: none; box-shadow: none; max-width: 100%; padding: 0; }
+  }
 </style>
 </head>
 <body>
@@ -486,9 +475,21 @@ const handleDownload = (slip: any, empName: string) => {
     This is a system generated payslip receipt for Crimson Cup Bangladesh. All amounts in BDT.
   </div>
 </div>
+<script>
+  window.onload = function() {
+    if (!window.location.href.startsWith('blob:')) {
+      window.print();
+      window.close();
+    }
+  };
+</script>
 </body>
 </html>
   `;
+}
+
+const handleDownload = (slip: any, empName: string) => {
+  const htmlContent = generatePayslipHTML(slip, empName);
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
