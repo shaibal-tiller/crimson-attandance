@@ -17,6 +17,9 @@ const OvertimeView = lazy(() => import('./views/OvertimeView'));
 const PayrollView = lazy(() => import('./views/PayrollView'));
 const InventoryView = lazy(() => import('./views/InventoryView'));
 const AIChatView = lazy(() => import('./views/AIChatView'));
+const NotFoundView = lazy(() => import('./views/NotFoundView'));
+
+import ErrorBoundary from './components/ErrorBoundary';
 
 function PageLoader() {
   return (
@@ -410,19 +413,21 @@ function TeamPortalPage() {
 // ─── APP ROUTER ────────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<TeamPortalPage />} />
-      <Route element={<Layout />}>
-        <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><DashboardView /></Suspense>} />
-        <Route path="/attendance" element={<Suspense fallback={<PageLoader />}><AttendanceView /></Suspense>} />
-        <Route path="/roster" element={<Suspense fallback={<PageLoader />}><RosterView /></Suspense>} />
-        <Route path="/overtime" element={<Suspense fallback={<PageLoader />}><OvertimeView /></Suspense>} />
-        <Route path="/payroll" element={<Suspense fallback={<PageLoader />}><PayrollView /></Suspense>} />
-        <Route path="/inventory" element={<Suspense fallback={<PageLoader />}><InventoryView /></Suspense>} />
-        <Route path="/ai" element={<Suspense fallback={<PageLoader />}><AIChatView /></Suspense>} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<TeamPortalPage />} />
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><DashboardView /></Suspense>} />
+          <Route path="/attendance" element={<Suspense fallback={<PageLoader />}><AttendanceView /></Suspense>} />
+          <Route path="/roster" element={<Suspense fallback={<PageLoader />}><RosterView /></Suspense>} />
+          <Route path="/overtime" element={<Suspense fallback={<PageLoader />}><OvertimeView /></Suspense>} />
+          <Route path="/payroll" element={<Suspense fallback={<PageLoader />}><PayrollView /></Suspense>} />
+          <Route path="/inventory" element={<Suspense fallback={<PageLoader />}><InventoryView /></Suspense>} />
+          <Route path="/ai" element={<Suspense fallback={<PageLoader />}><AIChatView /></Suspense>} />
+        </Route>
+        <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFoundView /></Suspense>} />
+      </Routes>
+    </ErrorBoundary>
   );
 }
