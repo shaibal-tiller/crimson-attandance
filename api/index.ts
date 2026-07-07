@@ -1,10 +1,9 @@
-import express from 'express';
+import { users } from '../src/db/schema.js';
 
 export default function handler(req: any, res: any) {
-  const app = express();
   res.status(200).json({ 
     status: 'ok', 
-    appExists: !!app,
+    schemaExists: !!users,
     vercel: process.env.VERCEL, 
     nodeEnv: process.env.NODE_ENV
   });
