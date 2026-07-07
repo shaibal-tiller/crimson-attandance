@@ -1,10 +1,3 @@
-import { users } from '../src/db/schema.js';
+import app from '../server.js';
 
-export default function handler(req: any, res: any) {
-  res.status(200).json({ 
-    status: 'ok', 
-    schemaExists: !!users,
-    vercel: process.env.VERCEL, 
-    nodeEnv: process.env.NODE_ENV
-  });
-}
+export default app;

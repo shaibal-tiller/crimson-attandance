@@ -7,12 +7,13 @@ import dotenv from 'dotenv';
 import { db } from './src/db/index.js';
 import { users, branches, inventory, attendance, roster, payroll, leaveRequests, inventoryLogs, overtime, chatSessions, chatMessages, aiUsageLogs } from './src/db/schema.js';
 
-dotenv.config();
+let app: any = express();
+let aiUsageLimits: any = new Map();
+let ai: any = null;
 
-const aiUsageLimits = new Map();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const app = express();
+try {
+  dotenv.config();
+  ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   app.use(express.json());
 
@@ -247,6 +248,30 @@ const app = express();
     }
   });
 
+  app.post('/api/users', async (req, res) => {
+    try {
+      const { name, email, role, branchId, branchName } = req.body;
+      if (!name || !email || !role || !branchId || !branchName) {
+        return res.status(400).json({ error: 'Missing required fields: name, email, role, branchId, branchName' });
+      }
+      const uid = `u_${role.toLowerCase().slice(0, 3)}_${Date.now()}`;
+      const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=150`;
+      await db.insert(users).values({ uid, name, email, role, branchId, branchName, avatar });
+      res.json({ success: true, uid, name, role, branchId, branchName });
+    } catch(e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/branches', async (req, res) => {
+    try {
+      const allBranches = await db.select().from(branches);
+      res.json(allBranches);
+    } catch(e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   
   app.get('/api/inventory_logs', async (req, res) => {
     try {
@@ -418,28 +443,41 @@ const app = express();
   });
 
 
-async function setupFrontendServing(app: any) {
-  if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+  async function setupFrontendServing(app: any) {
+    if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+  }
+
+  if (process.env.VERCEL !== '1') {
+    setupFrontendServing(app).then(() => {
+      const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+      });
     });
   }
-}
 
-if (process.env.VERCEL !== '1') {
-  setupFrontendServing(app).then(() => {
-    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
+} catch (e: any) {
+  console.error("SERVER BOOT FAILURE:", e);
+  app = express();
+  app.use(express.json());
+  app.all('*', (req: any, res: any) => {
+    res.status(500).json({
+      error: "Server Boot Failure",
+      message: e.message,
+      stack: e.stack
     });
   });
 }
