@@ -5,7 +5,7 @@ import { GoogleGenAI, Type, FunctionDeclaration } from '@google/genai';
 import { eq } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import { db } from './src/db/index.js';
-import { users, branches, inventory, attendance, roster, payroll, leaveRequests, inventoryLogs, overtime, chatSessions, chatMessages, aiUsageLogs } from './src/db/schema.js';
+import { users, branches, attendance, roster, payroll, leaveRequests, overtime, chatSessions, chatMessages, aiUsageLogs, warehouseItems, branchInventory, stockRequests, stockRequestItems } from './src/db/schema.js';
 
 let app: any = express();
 let aiUsageLimits: any = new Map();
@@ -105,10 +105,9 @@ try {
         
         
         try {
-           if (call.name === 'get_inventory') {
-             if (!user || user.role === 'Admin') toolResult = await db.select().from(inventory);
-             else toolResult = await db.select().from(inventory).where(eq(inventory.branchId, user.branchId));
-           } else if (call.name === 'get_employees') {
+          if (call.name === 'get_inventory') {
+            toolResult = await db.select().from(warehouseItems);
+          } else if (call.name === 'get_employees') {
              if (!user || user.role === 'Admin') toolResult = await db.select().from(users);
              else toolResult = await db.select().from(users).where(eq(users.branchId, user.branchId));
            } else if (call.name === 'get_attendance') {
@@ -299,14 +298,152 @@ try {
     }
   });
 
-  app.get('/api/inventory', async (req, res) => {
+  // --- NEW INVENTORY APIs ---
+
+  // Get master warehouse items
+  app.get('/api/inventory/warehouse', async (req, res) => {
     try {
-      const items = await db.select().from(inventory);
+      const items = await db.select().from(warehouseItems);
       res.json(items);
-    } catch(e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
   });
+
+  // Create or update warehouse item
+  app.post('/api/inventory/warehouse/items', async (req, res) => {
+    try {
+      const { id, name, category, unit, imageUrl, quantity, threshold } = req.body;
+      const itemId = id || `wi_${Date.now()}`;
+      await db.insert(warehouseItems).values({
+        id: itemId, name, category, unit, imageUrl, quantity, threshold
+      }).onConflictDoUpdate({
+        target: warehouseItems.id,
+        set: { name, category, unit, imageUrl, quantity, threshold }
+      });
+      res.json({ success: true, id: itemId });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
+  // Get branch inventory
+  app.get('/api/inventory/branch/:branchId', async (req, res) => {
+    try {
+      const { branchId } = req.params;
+      const result = await db.select({
+        id: branchInventory.id,
+        branchId: branchInventory.branchId,
+        itemId: branchInventory.itemId,
+        quantity: branchInventory.quantity,
+        threshold: branchInventory.threshold,
+        item: warehouseItems
+      })
+      .from(branchInventory)
+      .leftJoin(warehouseItems, eq(branchInventory.itemId, warehouseItems.id))
+      .where(eq(branchInventory.branchId, branchId));
+      res.json(result);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
+  // Get stock requests
+  app.get('/api/inventory/requests', async (req, res) => {
+    try {
+      const { branchId } = req.query;
+      let query = db.select().from(stockRequests);
+      if (branchId) {
+        query = query.where(eq(stockRequests.branchId, String(branchId)));
+      }
+      const requests = await query;
+      
+      const reqIds = requests.map(r => r.id);
+      let items = [];
+      if (reqIds.length > 0) {
+        items = await db.select({
+          id: stockRequestItems.id,
+          requestId: stockRequestItems.requestId,
+          itemId: stockRequestItems.itemId,
+          quantity: stockRequestItems.quantity,
+          item: warehouseItems
+        })
+        .from(stockRequestItems)
+        .leftJoin(warehouseItems, eq(stockRequestItems.itemId, warehouseItems.id));
+      }
+      
+      // group items by requestId
+      const result = requests.map(r => ({
+        ...r,
+        items: items.filter(i => i.requestId === r.id)
+      })).reverse();
+      
+      res.json(result);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
+  // Create a new stock request
+  app.post('/api/inventory/requests', async (req, res) => {
+    try {
+      const { branchId, items } = req.body; // items: { itemId: string, quantity: number }[]
+      const requestId = `req_${Date.now()}`;
+      await db.insert(stockRequests).values({
+        id: requestId,
+        branchId,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
+      for (const item of items) {
+        await db.insert(stockRequestItems).values({
+          id: `reqi_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          requestId,
+          itemId: item.itemId,
+          quantity: item.quantity
+        });
+      }
+      res.json({ success: true, requestId });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
+  // Update stock request status
+  app.put('/api/inventory/requests/:id/status', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      await db.update(stockRequests).set({ status, updatedAt: new Date().toISOString() }).where(eq(stockRequests.id, id));
+      
+      // If status is received, we must restock the branch inventory and deduct warehouse stock
+      if (status === 'received') {
+        const reqDb = await db.select().from(stockRequests).where(eq(stockRequests.id, id));
+        if (reqDb.length === 0) return res.status(404).json({error: 'not found'});
+        const branchId = reqDb[0].branchId;
+        
+        const reqItems = await db.select().from(stockRequestItems).where(eq(stockRequestItems.requestId, id));
+        
+        for (const item of reqItems) {
+          // Add to branch
+          const existing = await db.select().from(branchInventory)
+            .where(eq(branchInventory.branchId, branchId))
+            .where(eq(branchInventory.itemId, item.itemId));
+            
+          if (existing.length > 0) {
+            await db.execute(`UPDATE branch_inventory SET quantity = quantity + ${item.quantity} WHERE id = '${existing[0].id}'`);
+          } else {
+            await db.insert(branchInventory).values({
+              id: `bi_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+              branchId,
+              itemId: item.itemId,
+              quantity: item.quantity,
+              threshold: 5
+            });
+          }
+          
+          // Deduct from warehouse
+          await db.execute(`UPDATE warehouse_items SET quantity = quantity - ${item.quantity} WHERE id = '${item.itemId}'`);
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
 
   app.get('/api/attendance', async (req, res) => {
     try {

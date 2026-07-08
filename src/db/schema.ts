@@ -19,15 +19,22 @@ export const branches = pgTable('branches', {
   location: text('location').notNull(),
 });
 
-export const inventory = pgTable('inventory', {
+export const warehouseItems = pgTable('warehouse_items', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  category: text('category').notNull(),
+  unit: text('unit').notNull(),
+  imageUrl: text('image_url'),
+  quantity: integer('quantity').notNull().default(0),
+  threshold: integer('threshold').notNull().default(10),
+});
+
+export const branchInventory = pgTable('branch_inventory', {
   id: text('id').primaryKey(),
   branchId: text('branch_id').notNull(),
-  category: text('category').notNull(),
-  name: text('name').notNull(),
-  quantity: integer('quantity').notNull(),
-  unit: text('unit').notNull(),
-  threshold: integer('threshold').notNull(),
-  status: text('status').notNull(),
+  itemId: text('item_id').notNull(),
+  quantity: integer('quantity').notNull().default(0),
+  threshold: integer('threshold').notNull().default(5),
 });
 
 export const attendance = pgTable('attendance', {
@@ -76,14 +83,19 @@ export const leaveRequests = pgTable('leave_requests', {
   createdAt: text('created_at').notNull(),
 });
 
-export const inventoryLogs = pgTable('inventory_logs', {
+export const stockRequests = pgTable('stock_requests', {
   id: text('id').primaryKey(),
-  inventoryId: text('inventory_id').notNull(),
   branchId: text('branch_id').notNull(),
-  userId: text('user_id').notNull(),
-  action: text('action').notNull(),
-  quantityChange: integer('quantity_change').notNull(),
-  timestamp: text('timestamp').notNull(),
+  status: text('status').notNull(), // 'pending', 'approved', 'shipped', 'received', 'rejected'
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const stockRequestItems = pgTable('stock_request_items', {
+  id: text('id').primaryKey(),
+  requestId: text('request_id').notNull(),
+  itemId: text('item_id').notNull(),
+  quantity: integer('quantity').notNull(),
 });
 
 export const overtime = pgTable('overtime', {
