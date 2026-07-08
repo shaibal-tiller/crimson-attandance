@@ -10,9 +10,8 @@ export default function NotFoundView() {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#C1121F]/10 rounded-full filter blur-3xl animate-blob animation-delay-2000 pointer-events-none" />
       
       <div className="glass-panel p-10 rounded-3xl max-w-lg w-full text-center border border-zinc-800/50 shadow-2xl relative z-10 flex flex-col items-center">
-        <div className="w-20 h-20 bg-glass-accent/10 flex items-center justify-center rounded-full mb-8 relative">
-          <Coffee className="w-10 h-10 text-glass-accent absolute" />
-          {/* A broken or crossed-out effect could go here, but a coffee cup works for Crimson Cup! */}
+        <div className="w-20 h-20 flex items-center justify-center rounded-full mb-8 relative">
+          <img src="https://crimsoncupbangladesh.com/cdn/shop/files/brand-logo.webp" alt="Crimson Cup Logo" className="w-16 h-16 object-contain opacity-60 grayscale" />
         </div>
         
         <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 mb-4 tracking-tighter">

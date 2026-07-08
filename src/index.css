@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
 :root {
   --color-glass-bg: #0D0908;
   --color-glass-text: #FDF0D5;
   --color-glass-text-muted: rgba(253, 240, 213, 0.6);
-  --color-glass-accent: #C1121F;
-  --color-glass-accent-light: rgba(193, 18, 31, 0.2);
+  --color-glass-accent: #BC343A;
+  --color-glass-accent-light: rgba(188, 52, 58, 0.2);
   --color-glass-panel: rgba(15, 10, 9, 0.8);
   --color-glass-panel-hover: rgba(255, 255, 255, 0.08);
   --color-glass-border: rgba(255, 255, 255, 0.12);
@@ -18,17 +18,17 @@
   --color-glass-bg: #F8F1ED;
   --color-glass-text: #2B1510;
   --color-glass-text-muted: rgba(43, 21, 16, 0.6);
-  --color-glass-accent: #C1121F;
-  --color-glass-accent-light: rgba(193, 18, 31, 0.1);
+  --color-glass-accent: #BC343A;
+  --color-glass-accent-light: rgba(188, 52, 58, 0.1);
   --color-glass-panel: rgba(255, 255, 255, 0.75);
   --color-glass-panel-hover: rgba(255, 255, 255, 0.9);
-  --color-glass-border: rgba(193, 18, 31, 0.18);
-  --color-glass-border-light: rgba(193, 18, 31, 0.1);
-  --color-glass-item: rgba(193, 18, 31, 0.04);
+  --color-glass-border: rgba(188, 52, 58, 0.18);
+  --color-glass-border-light: rgba(188, 52, 58, 0.1);
+  --color-glass-item: rgba(188, 52, 58, 0.04);
 }
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
   
   --color-glass-bg: var(--color-glass-bg);
   --color-glass-text: var(--color-glass-text);

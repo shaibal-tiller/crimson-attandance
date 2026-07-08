@@ -53,9 +53,7 @@ export default function Layout() {
       )}>
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center space-x-2 text-glass-accent font-extrabold text-xl tracking-wide uppercase">
-            <div className="w-6 h-6 bg-glass-accent rounded flex items-center justify-center text-white">
-              <Coffee className="w-4 h-4" />
-            </div>
+            <img src="https://crimsoncupbangladesh.com/cdn/shop/files/brand-logo.webp" alt="Crimson Cup Logo" className="h-6 w-auto object-contain" />
             <span>Crimson Cup BD</span>
           </div>
           <button className="lg:hidden text-glass-text-muted hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
@@ -115,7 +113,7 @@ export default function Layout() {
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-between p-4 bg-glass-panel backdrop-blur-md border-b border-glass-border safe-area-top">
           <div className="flex items-center space-x-2 text-glass-accent font-bold">
-            <Coffee className="w-5 h-5" />
+            <img src="https://crimsoncupbangladesh.com/cdn/shop/files/brand-logo.webp" alt="Crimson Cup Logo" className="h-6 w-auto object-contain" />
             <span>Crimson Cup BD</span>
           </div>
           <button onClick={() => setIsMobileMenuOpen(true)} className="text-glass-text p-2 -mr-2 active:bg-white/10 rounded-lg transition">

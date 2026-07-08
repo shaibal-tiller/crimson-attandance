@@ -115,9 +115,7 @@ function HomePage() {
         <div className="w-full max-w-sm">
           {/* Logo mark */}
           <div className="flex items-center space-x-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-glass-accent flex items-center justify-center shadow-lg shadow-glass-accent/30">
-              <Coffee className="w-5 h-5 text-white" />
-            </div>
+            <img src="https://crimsoncupbangladesh.com/cdn/shop/files/brand-logo.webp" alt="Crimson Cup Logo" className="h-12 w-auto object-contain" />
             <div>
               <p className="text-white font-bold leading-none">Crimson Cup ERP</p>
               <p className="text-zinc-500 text-xs mt-0.5">Staff Management Portal</p>
@@ -275,9 +273,7 @@ function TeamPortalPage() {
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-800/60 bg-zinc-900/40 backdrop-blur-md z-10">
         <div className="flex items-center space-x-3">
           <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition">
-            <div className="w-7 h-7 rounded-lg bg-glass-accent flex items-center justify-center">
-              <Coffee className="w-4 h-4 text-white" />
-            </div>
+            <img src="https://crimsoncupbangladesh.com/cdn/shop/files/brand-logo.webp" alt="Crimson Cup Logo" className="h-8 w-auto object-contain" />
           </Link>
           <span className="text-zinc-100 font-semibold text-sm">Team Portal</span>
           <span className="text-zinc-500 text-xs hidden sm:inline">/ Select Profile</span>
